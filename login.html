@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drive Replica - My Files</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="background-animation">
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+    </div>
+
+    <div id="app">
+        <aside class="sidebar">
+            <div class="logo">
+                <i class="fas fa-cloud"></i>
+                <span>MyDrive</span>
+            </div>
+            
+            <nav class="nav-menu">
+                <a href="#" class="nav-item active">
+                    <i class="fas fa-home"></i>
+                    <span>My Files</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-share-nodes"></i>
+                    <span>Shared</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-star"></i>
+                    <span>Starred</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-clock"></i>
+                    <span>Recent</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-trash"></i>
+                    <span>Trash</span>
+                </a>
+            </nav>
+
+            <div class="storage-info">
+                <div class="storage-header">
+                    <i class="fas fa-database"></i>
+                    <span>Storage</span>
+                </div>
+                <div class="storage-bar">
+                    <div class="storage-used" style="width: 65%"></div>
+                </div>
+                <p class="storage-text">6.5 GB of 10 GB used</p>
+                <button class="btn-upgrade">
+                    <i class="fas fa-arrow-up"></i>
+                    Upgrade Storage
+                </button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-header">
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search files and folders...">
+                </div>
+                
+                <div class="header-actions">
+                    <button class="icon-btn" title="Notifications">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">3</span>
+                    </button>
+                    <button class="icon-btn" title="Settings">
+                        <i class="fas fa-gear"></i>
+                    </button>
+                    <div class="user-profile">
+                        <img src="https://ui-avatars.com/api/?name=John+Doe&background=667eea&color=fff" alt="User">
+                        <div class="user-dropdown">
+                            <span class="user-name">John Doe</span>
+                            <span class="user-email">john.doe@example.com</span>
+                            <button id="logoutBtn" class="dropdown-btn">
+                                <i class="fas fa-sign-out-alt"></i>
+                                Logout
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="content-wrapper">
+                <div class="page-header">
+                    <h1>My Files</h1>
+                    <div class="view-options">
+                        <button class="view-btn active" data-view="grid">
+                            <i class="fas fa-grid-2"></i>
+                        </button>
+                        <button class="view-btn" data-view="list">
+                            <i class="fas fa-list"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="upload-zone" id="uploadZone">
+                    <div class="upload-content">
+                        <i class="fas fa-cloud-arrow-up"></i>
+                        <h3>Drag & Drop files here</h3>
+                        <p>or</p>
+                        <label for="fileInput" class="btn-upload">
+                            <i class="fas fa-folder-open"></i>
+                            Browse Files
+                        </label>
+                        <input type="file" id="fileInput" multiple hidden>
+                    </div>
+                    <div id="uploadProgress" class="upload-progress"></div>
+                </div>
+
+                <div class="quick-access">
+                    <h2>Quick Access</h2>
+                    <div class="quick-files">
+                        <div class="quick-file">
+                            <i class="fas fa-file-pdf"></i>
+                            <span>Reports.pdf</span>
+                        </div>
+                        <div class="quick-file">
+                            <i class="fas fa-file-word"></i>
+                            <span>Proposal.docx</span>
+                        </div>
+                        <div class="quick-file">
+                            <i class="fas fa-file-excel"></i>
+                            <span>Budget.xlsx</span>
+                        </div>
+                        <div class="quick-file">
+                            <i class="fas fa-file-image"></i>
+                            <span>Design.png</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="files-section">
+                    <div class="section-header">
+                        <h2>All Files</h2>
+                        <div class="filter-buttons">
+                            <button class="filter-btn active">All</button>
+                            <button class="filter-btn">Documents</button>
+                            <button class="filter-btn">Images</button>
+                            <button class="filter-btn">Videos</button>
+                        </div>
+                    </div>
+
+                    <div id="filesList" class="files-grid">
+                        <!-- Sample files -->
+                        <div class="file-card">
+                            <div class="file-icon pdf">
+                                <i class="fas fa-file-pdf"></i>
+                            </div>
+                            <div class="file-details">
+                                <h3>Annual Report 2024.pdf</h3>
+                                <p class="file-meta">
+                                    <span>2.5 MB</span>
+                                    <span>•</span>
+                                    <span>2 days ago</span>
+                                </p>
+                            </div>
+                            <div class="file-actions">
+                                <button class="action-btn" title="View">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="action-btn" title="Share">
+                                    <i class="fas fa-share-nodes"></i>
+                                </button>
+                                <button class="action-btn" title="Download">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                                <button class="action-btn delete" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="file-card">
+                            <div class="file-icon image">
+                                <i class="fas fa-file-image"></i>
+                            </div>
+                            <div class="file-details">
+                                <h3>Product Design.png</h3>
+                                <p class="file-meta">
+                                    <span>1.2 MB</span>
+                                    <span>•</span>
+                                    <span>5 days ago</span>
+                                </p>
+                                <div class="shared-badge">
+                                    <i class="fas fa-users"></i>
+                                    Shared with 3 people
+                                </div>
+                            </div>
+                            <div class="file-actions">
+                                <button class="action-btn" title="View">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="action-btn" title="Share">
+                                    <i class="fas fa-share-nodes"></i>
+                                </button>
+                                <button class="action-btn" title="Download">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                                <button class="action-btn delete" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="file-card">
+                            <div class="file-icon ppt">
+                                <i class="fas fa-file-powerpoint"></i>
+                            </div>
+                            <div class="file-details">
+                                <h3>Marketing Presentation.pptx</h3>
+                                <p class="file-meta">
+                                    <span>5.8 MB</span>
+                                    <span>•</span>
+                                    <span>1 week ago</span>
+                                </p>
+                            </div>
+                            <div class="file-actions">
+                                <button class="action-btn" title="View">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="action-btn" title="Share">
+                                    <i class="fas fa-share-nodes"></i>
+                                </button>
+                                <button class="action-btn" title="Download">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                                <button class="action-btn delete" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="file-card">
+                            <div class="file-icon doc">
+                                <i class="fas fa-file-word"></i>
+                            </div>
+                            <div class="file-details">
+                                <h3>Project Proposal.docx</h3>
+                                <p class="file-meta">
+                                    <span>856 KB</span>
+                                    <span>•</span>
+                                    <span>3 weeks ago</span>
+                                </p>
+                            </div>
+                            <div class="file-actions">
+                                <button class="action-btn" title="View">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="action-btn" title="Share">
+                                    <i class="fas fa-share-nodes"></i>
+                                </button>
+                                <button class="action-btn" title="Download">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                                <button class="action-btn delete" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="file-card">
+                            <div class="file-icon excel">
+                                <i class="fas fa-file-excel"></i>
+                            </div>
+                            <div class="file-details">
+                                <h3>Budget 2024.xlsx</h3>
+                                <p class="file-meta">
+                                    <span>420 KB</span>
+                                    <span>•</span>
+                                    <span>1 month ago</span>
+                                </p>
+                                <div class="shared-badge">
+                                    <i class="fas fa-users"></i>
+                                    Shared with 1 person
+                                </div>
+                            </div>
+                            <div class="file-actions">
+                                <button class="action-btn" title="View">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="action-btn" title="Share">
+                                    <i class="fas fa-share-nodes"></i>
+                                </button>
+                                <button class="action-btn" title="Download">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                                <button class="action-btn delete" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="file-card">
+                            <div class="file-icon video">
+                                <i class="fas fa-file-video"></i>
+                            </div>
+                            <div class="file-details">
+                                <h3>Tutorial Video.mp4</h3>
+                                <p class="file-meta">
+                                    <span>45.2 MB</span>
+                                    <span>•</span>
+                                    <span>2 months ago</span>
+                                </p>
+                            </div>
+                            <div class="file-actions">
+                                <button class="action-btn" title="View">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="action-btn" title="Share">
+                                    <i class="fas fa-share-nodes"></i>
+                                </button>
+                                <button class="action-btn" title="Download">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                                <button class="action-btn delete" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Share Modal -->
+    <div id="shareModal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-share-nodes"></i> Share File</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" id="shareEmail" placeholder="Enter email address">
+                </div>
+                <div class="permission-select">
+                    <label>Permission:</label>
+                    <select>
+                        <option>Can view</option>
+                        <option>Can edit</option>
+                        <option>Can comment</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary close-modal">Cancel</button>
+                <button id="shareFileBtn" class="btn-primary">
+                    <i class="fas fa-paper-plane"></i>
+                    Send Invitation
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+</body>
+</html>
