@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap'); 
 
 :root {
     --primary: #667eea;
@@ -234,9 +234,24 @@ body {
     margin-bottom: 8px;
 }
 
-.form-group input {
+/* NOTE: Keep your existing .form-group input for dashboard.
+   Auth inputs are scoped below to avoid conflicts with modal .input-group */
+.auth-card .input-group {
+    position: relative;
+    margin-bottom: 0; /* auth form spacing handled by .form-group */
+}
+
+.auth-card .input-group i {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+}
+
+.auth-card .input-group input {
     width: 100%;
-    padding: 14px 16px;
+    padding: 14px 44px 14px 44px; /* left icon + right eye button room */
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
@@ -245,7 +260,7 @@ body {
     transition: all 0.3s ease;
 }
 
-.form-group input:focus {
+.auth-card .input-group input:focus {
     outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
@@ -287,36 +302,6 @@ body {
     transition: width 0.3s ease;
 }
 
-.form-options {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px;
-    font-size: 13px;
-}
-
-.checkbox-label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--text-secondary);
-    cursor: pointer;
-}
-
-.checkbox-label input {
-    width: auto;
-}
-
-.link {
-    color: var(--primary);
-    text-decoration: none;
-    transition: color 0.3s ease;
-}
-
-.link:hover {
-    color: var(--accent);
-}
-
 .btn-auth {
     width: 100%;
     padding: 14px;
@@ -342,6 +327,12 @@ body {
 
 .btn-auth:active {
     transform: translateY(0);
+}
+
+.btn-auth:disabled {
+    opacity: 0.75;
+    cursor: not-allowed;
+    transform: none;
 }
 
 .divider {
@@ -411,45 +402,6 @@ body {
     color: var(--danger);
     font-size: 13px;
     display: none;
-}
-
-.auth-features {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 24px;
-    width: 100%;
-    max-width: 900px;
-}
-
-.feature {
-    background: rgba(26, 26, 46, 0.5);
-    backdrop-filter: blur(10px);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
-    padding: 24px;
-    text-align: center;
-    transition: all 0.3s ease;
-}
-
-.feature:hover {
-    transform: translateY(-4px);
-    border-color: var(--primary);
-}
-
-.feature i {
-    font-size: 32px;
-    color: var(--primary);
-    margin-bottom: 12px;
-}
-
-.feature h3 {
-    font-size: 16px;
-    margin-bottom: 8px;
-}
-
-.feature p {
-    font-size: 13px;
-    color: var(--text-secondary);
 }
 
 /* ==================== MAIN APP ==================== */
@@ -1262,10 +1214,6 @@ body {
     }
     
     .files-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .auth-features {
         grid-template-columns: 1fr;
     }
 }
