@@ -1,11 +1,9 @@
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Drive Replica - My Files</title>
+    <title>Mini-Cloud</title>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -24,28 +22,27 @@
             </div>
             
             <nav class="nav-menu">
-                <a href="#" class="nav-item active">
-                    <i class="fas fa-home"></i>
-                    <span>My Files</span>
-                </a>
-                <a href="#" class="nav-item">
-                    <i class="fas fa-share-nodes"></i>
-                    <span>Shared</span>
-                </a>
-                <a href="#" class="nav-item">
-                    <i class="fas fa-star"></i>
-                    <span>Starred</span>
-                </a>
-                <a href="#" class="nav-item">
-                    <i class="fas fa-clock"></i>
-                    <span>Recent</span>
-                </a>
-                <a href="#" class="nav-item">
-                    <i class="fas fa-trash"></i>
-                    <span>Trash</span>
-                </a>
+              <a href="#" class="nav-item active" data-route="my-files">
+                <i class="fas fa-home"></i>
+                <span>My Files</span>
+              </a>
+              <a href="#" class="nav-item" data-route="shared">
+                <i class="fas fa-share-nodes"></i>
+                <span>Shared</span>
+              </a>
+              <a href="#" class="nav-item" data-route="starred">
+                <i class="fas fa-star"></i>
+                <span>Starred</span>
+              </a>
+              <a href="#" class="nav-item" data-route="recent">
+                <i class="fas fa-clock"></i>
+                <span>Recent</span>
+              </a>
+              <a href="#" class="nav-item" data-route="trash">
+                <i class="fas fa-trash"></i>
+                <span>Trash</span>
+              </a>
             </nav>
-
             <div class="storage-info">
                 <div class="storage-header">
                     <i class="fas fa-database"></i>
@@ -80,8 +77,8 @@
                     <div class="user-profile">
                         <img src="https://ui-avatars.com/api/?name=John+Doe&background=667eea&color=fff" alt="User">
                         <div class="user-dropdown">
-                            <span class="user-name">John Doe</span>
-                            <span class="user-email">john.doe@example.com</span>
+                            <span class="user-name">User1</span>
+                            <span class="user-email">user1@example.com</span>
                             <button id="logoutBtn" class="dropdown-btn">
                                 <i class="fas fa-sign-out-alt"></i>
                                 Logout
@@ -90,7 +87,6 @@
                     </div>
                 </div>
             </header>
-
             <div class="content-wrapper">
                 <div class="page-header">
                     <h1>My Files</h1>
@@ -117,7 +113,6 @@
                     </div>
                     <div id="uploadProgress" class="upload-progress"></div>
                 </div>
-
                 <div class="quick-access">
                     <h2>Quick Access</h2>
                     <div class="quick-files">
@@ -139,7 +134,6 @@
                         </div>
                     </div>
                 </div>
-
                 <div class="files-section">
                     <div class="section-header">
                         <h2>All Files</h2>
@@ -150,17 +144,12 @@
                             <button class="filter-btn">Videos</button>
                         </div>
                     </div>
-
-                    
-                    <div id="filesList" class="files-grid">
-                       
+                    <div id="filesList" class="files-grid">             
                     </div>
                 </div>
             </div>
         </main>
     </div>
-
-    <!-- Share Modal -->
     <div id="shareModal" class="modal" style="display:none;">
         <div class="modal-overlay"></div>
         <div class="modal-content">
@@ -191,16 +180,10 @@
             </div>
         </div>
     </div>
-
-    
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
-    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-   
     <script type="module" src="js/main.js"></script>
 </body>
 </html>
