@@ -1,188 +1,144 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mini-Cloud</title>
-    <link rel="stylesheet" href="css/styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>MiniCloud</title>
+
+```
+<!-- Font -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<!-- CSS -->
+<link rel="stylesheet" href="styles.css">
+
+<!-- Icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+```
+
 </head>
+
 <body>
-    <div class="background-animation">
-        <div class="shape"></div>
-        <div class="shape"></div>
-        <div class="shape"></div>
+
+<div id="app">
+
+```
+<!-- SIDEBAR -->
+<aside class="sidebar">
+    <div class="logo">
+        <i class="fas fa-cloud"></i>
+        <span>MiniCloud</span>
     </div>
 
-    <div id="app">
-        <aside class="sidebar">
-            <div class="logo">
-                <i class="fas fa-cloud"></i>
-                <span>MyDrive</span>
-            </div>
-            
-            <nav class="nav-menu">
-              <a href="#" class="nav-item active" data-route="my-files">
-                <i class="fas fa-home"></i>
-                <span>My Files</span>
-              </a>
-              <a href="#" class="nav-item" data-route="shared">
-                <i class="fas fa-share-nodes"></i>
-                <span>Shared</span>
-              </a>
-              <a href="#" class="nav-item" data-route="starred">
-                <i class="fas fa-star"></i>
-                <span>Starred</span>
-              </a>
-              <a href="#" class="nav-item" data-route="recent">
-                <i class="fas fa-clock"></i>
-                <span>Recent</span>
-              </a>
-              <a href="#" class="nav-item" data-route="trash">
-                <i class="fas fa-trash"></i>
-                <span>Trash</span>
-              </a>
-            </nav>
-            <div class="storage-info">
-                <div class="storage-header">
-                    <i class="fas fa-database"></i>
-                    <span>Storage</span>
-                </div>
-                <div class="storage-bar">
-                    <div class="storage-used" style="width: 65%"></div>
-                </div>
-                <p class="storage-text">6.5 GB of 10 GB used</p>
-                <button class="btn-upgrade">
-                    <i class="fas fa-arrow-up"></i>
-                    Upgrade Storage
-                </button>
-            </div>
-        </aside>
+    <nav>
+        <div class="nav-item active"><i class="fas fa-home"></i> Workspace</div>
+        <div class="nav-item"><i class="fas fa-share-nodes"></i> Shared</div>
+        <div class="nav-item"><i class="fas fa-star"></i> Starred</div>
+        <div class="nav-item"><i class="fas fa-clock"></i> Recent</div>
+        <div class="nav-item"><i class="fas fa-trash"></i> Trash</div>
+    </nav>
 
-        <main class="main-content">
-            <header class="top-header">
-                <div class="search-bar">
-                    <i class="fas fa-search"></i>
-                    <input type="text" placeholder="Search files and folders...">
-                </div>
-                
-                <div class="header-actions">
-                    <button class="icon-btn" title="Notifications">
-                        <i class="fas fa-bell"></i>
-                        <span class="notification-badge">3</span>
-                    </button>
-                    <button class="icon-btn" title="Settings">
-                        <i class="fas fa-gear"></i>
-                    </button>
-                    <div class="user-profile">
-                        <img src="https://ui-avatars.com/api/?name=John+Doe&background=667eea&color=fff" alt="User">
-                        <div class="user-dropdown">
-                            <span class="user-name">User1</span>
-                            <span class="user-email">user1@example.com</span>
-                            <button id="logoutBtn" class="dropdown-btn">
-                                <i class="fas fa-sign-out-alt"></i>
-                                Logout
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </header>
-            <div class="content-wrapper">
-                <div class="page-header">
-                    <h1>My Files</h1>
-                    <div class="view-options">
-                        <button class="view-btn active" data-view="grid">
-                            <i class="fas fa-grid-2"></i>
-                        </button>
-                        <button class="view-btn" data-view="list">
-                            <i class="fas fa-list"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="upload-zone" id="uploadZone">
-                    <div class="upload-content">
-                        <i class="fas fa-cloud-arrow-up"></i>
-                        <h3>Drag & Drop files here</h3>
-                        <p>or</p>
-                        <label for="fileInput" class="btn-upload">
-                            <i class="fas fa-folder-open"></i>
-                            Browse Files
-                        </label>
-                        <input type="file" id="fileInput" multiple hidden>
-                    </div>
-                    <div id="uploadProgress" class="upload-progress"></div>
-                </div>
-                <div class="quick-access">
-                    <h2>Quick Access</h2>
-                    <div class="quick-files">
-                        <div class="quick-file">
-                            <i class="fas fa-file-pdf"></i>
-                            <span>Reports.pdf</span>
-                        </div>
-                        <div class="quick-file">
-                            <i class="fas fa-file-word"></i>
-                            <span>Proposal.docx</span>
-                        </div>
-                        <div class="quick-file">
-                            <i class="fas fa-file-excel"></i>
-                            <span>Budget.xlsx</span>
-                        </div>
-                        <div class="quick-file">
-                            <i class="fas fa-file-image"></i>
-                            <span>Design.png</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="files-section">
-                    <div class="section-header">
-                        <h2>All Files</h2>
-                        <div class="filter-buttons">
-                            <button class="filter-btn active">All</button>
-                            <button class="filter-btn">Documents</button>
-                            <button class="filter-btn">Images</button>
-                            <button class="filter-btn">Videos</button>
-                        </div>
-                    </div>
-                    <div id="filesList" class="files-grid">             
-                    </div>
-                </div>
-            </div>
-        </main>
+    <div class="storage-info">
+        <p>Storage</p>
+        <div class="storage-bar">
+            <div class="storage-used" style="width:65%"></div>
+        </div>
+        <p>6.5 GB of 10 GB used</p>
+        <button class="btn-upgrade">Upgrade</button>
     </div>
-    <div id="shareModal" class="modal" style="display:none;">
-        <div class="modal-overlay"></div>
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2><i class="fas fa-share-nodes"></i> Share File</h2>
-                <button class="close-modal" type="button">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="input-group">
-                    <i class="fas fa-envelope"></i>
-                    <input type="email" id="shareEmail" placeholder="Enter email address">
+</aside>
+
+<!-- MAIN -->
+<main class="main-content">
+
+    <!-- HEADER -->
+    <header class="top-header">
+        <div class="search-bar">
+            <input type="text" placeholder="Search your workspace...">
+        </div>
+
+        <div style="display:flex; gap:10px; align-items:center;">
+            <button class="icon-btn"><i class="fas fa-bell"></i></button>
+            <button class="icon-btn"><i class="fas fa-gear"></i></button>
+
+            <!-- USER PROFILE -->
+            <div class="user-profile">
+                <img src="https://ui-avatars.com/api/?name=User&background=6366f1&color=fff">
+
+                <div class="user-info">
+                    <span class="user-name">User1</span>
+                    <span class="user-email">user1@example.com</span>
                 </div>
-                <div class="permission-select">
-                    <label>Permission:</label>
-                    <select>
-                        <option>Can view</option>
-                        <option>Can edit</option>
-                        <option>Can comment</option>
-                    </select>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn-secondary close-modal" type="button">Cancel</button>
-                <button id="shareFileBtn" class="btn-primary" type="button">
-                    <i class="fas fa-paper-plane"></i>
-                    Send Invitation
-                </button>
+
+                <button class="logout-btn">Logout</button>
             </div>
         </div>
+    </header>
+
+    <!-- CONTENT -->
+    <div class="content-wrapper">
+
+        <!-- PAGE HEADER -->
+        <div class="page-header">
+            <div>
+                <h1>Workspace</h1>
+                <p class="subtitle">Manage and organize your files efficiently</p>
+            </div>
+
+            <div>
+                <button class="icon-btn"><i class="fas fa-th"></i></button>
+                <button class="icon-btn"><i class="fas fa-list"></i></button>
+            </div>
+        </div>
+
+        <!-- UPLOAD -->
+        <div class="modern-upload">
+            <p><i class="fas fa-cloud-upload-alt"></i></p>
+            <h3>Drop files to upload</h3>
+            <p>or</p>
+            <input type="file" multiple>
+        </div>
+
+        <!-- QUICK ACCESS -->
+        <div class="quick-access">
+            <h3>Quick Access</h3>
+
+            <div class="quick-files">
+                <div class="quick-file"><i class="fas fa-file-pdf"></i> Reports.pdf</div>
+                <div class="quick-file"><i class="fas fa-file-word"></i> Proposal.docx</div>
+                <div class="quick-file"><i class="fas fa-file-excel"></i> Budget.xlsx</div>
+                <div class="quick-file"><i class="fas fa-file-image"></i> Design.png</div>
+            </div>
+        </div>
+
+        <!-- FILES -->
+        <div class="files-section">
+            <h3 style="margin-top:30px;">All Files</h3>
+
+            <div class="files-grid">
+
+                <!-- EMPTY STATE -->
+                <div class="empty-state">
+                    <i class="fas fa-folder-open"></i>
+                    <h3>No files yet</h3>
+                    <p>Upload your first file to get started</p>
+                </div>
+
+            </div>
+        </div>
+
     </div>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script type="module" src="js/main.js"></script>
+
+    <!-- FLOAT BUTTON -->
+    <button class="floating-upload">
+        <i class="fas fa-plus"></i>
+    </button>
+
+</main>
+```
+
+</div>
+
 </body>
 </html>
