@@ -4,6 +4,39 @@
 export class StorageManager {
   constructor() {
     this.storage = firebase.storage();
+    this._storageReadyPromise = null;
+  }
+
+  async ensureStorageReady() {
+    if (this._storageReadyPromise) return this._storageReadyPromise;
+
+    // Probe the configured bucket once. If Storage is initialized, this returns
+    // object-not-found for a fake file; if not initialized, it returns bucket errors.
+    this._storageReadyPromise = this.storage
+      .ref('__storage_probe__/missing-file.txt')
+      .getMetadata()
+      .then(() => true)
+      .catch((error) => {
+        if (error?.code === 'storage/object-not-found') return true;
+
+        if (error?.code === 'storage/bucket-not-found') {
+          const err = new Error('Firebase Storage is not set up for this project. Open Firebase Console > Storage > Get started.');
+          err.code = 'storage/bucket-not-found';
+          throw err;
+        }
+
+        if (error?.code === 'storage/unauthorized') {
+          const err = new Error('No permission to access Firebase Storage. Check Storage rules and sign in again.');
+          err.code = 'storage/unauthorized';
+          throw err;
+        }
+
+        const err = new Error(error?.message || 'Firebase Storage is unavailable.');
+        err.code = error?.code || 'storage/unknown';
+        throw err;
+      });
+
+    return this._storageReadyPromise;
   }
 
   sanitizeFilename(filename) {
@@ -12,32 +45,62 @@ export class StorageManager {
 
   // Upload a file to Firebase Storage
   // Returns { path, url }
-  async uploadFile(file, userId, onProgress) {
+  async uploadFile(file, userId, onProgress, timeoutMs = 120000) {
+    await this.ensureStorageReady();
+
     const safeName = this.sanitizeFilename(file.name);
     const filePath = `files/${userId}/${Date.now()}_${safeName}`;
     const storageRef = this.storage.ref(filePath);
 
     return new Promise((resolve, reject) => {
-      const uploadTask = storageRef.put(file);
+      const uploadTask = storageRef.put(file, {
+        contentType: file.type || 'application/octet-stream',
+      });
+      let settled = false;
+      const timeoutId = setTimeout(() => {
+        if (settled) return;
+        try {
+          uploadTask.cancel();
+        } catch (_e) {
+          // Ignore cancellation errors; we still reject below.
+        }
+        settled = true;
+        const err = new Error('Upload timed out. Please try again.');
+        err.code = 'storage/retry-limit-exceeded';
+        reject(err);
+      }, timeoutMs);
 
       uploadTask.on(
         'state_changed',
         (snapshot) => {
+          if (settled) return;
           if (onProgress) {
             const pct = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
             onProgress(Math.round(pct));
           }
         },
         (error) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timeoutId);
           console.error('Firebase Storage upload error:', error);
-          reject(new Error(error.message || 'Failed to upload file.'));
+          const err = new Error(error.message || 'Failed to upload file.');
+          err.code = error.code;
+          reject(err);
         },
         async () => {
+          if (settled) return;
           try {
             const url = await uploadTask.snapshot.ref.getDownloadURL();
+            settled = true;
+            clearTimeout(timeoutId);
             resolve({ path: filePath, url });
           } catch (err) {
-            reject(new Error(err.message || 'Failed to get download URL.'));
+            settled = true;
+            clearTimeout(timeoutId);
+            const out = new Error(err.message || 'Failed to get download URL.');
+            out.code = err?.code || 'storage/unknown';
+            reject(out);
           }
         }
       );

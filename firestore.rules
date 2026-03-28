@@ -1,0 +1,36 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(resourceData) {
+      return signedIn() && resourceData.ownerId == request.auth.uid;
+    }
+
+    function isShared(resourceData) {
+      return signedIn() && (
+        resourceData.sharedWith.hasAny([request.auth.uid]) ||
+        (request.auth.token.email != null && resourceData.sharedWith.hasAny([request.auth.token.email]))
+      );
+    }
+
+    match /files/{fileId} {
+      // Owner can read/write everything.
+      // Shared users can read only.
+      allow get, list: if isOwner(resource.data) || isShared(resource.data);
+
+      // New files must belong to the signed-in user.
+      allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid;
+
+      // Only owner can modify or delete metadata.
+      allow update, delete: if isOwner(resource.data);
+    }
+
+    // Deny everything else by default.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

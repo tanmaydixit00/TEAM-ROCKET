@@ -118,6 +118,8 @@ export function friendlyFirebaseError(error) {
     'storage/canceled':           'File operation was cancelled.',
     'storage/object-not-found':   'File not found in storage.',
     'storage/quota-exceeded':     'Storage quota exceeded.',
+    'storage/bucket-not-found':   'Firebase Storage is not initialized. Open Firebase Console > Storage > Get started.',
+    'storage/retry-limit-exceeded':'Upload timed out. Please try again.',
     // Firestore
     'permission-denied':          'You do not have permission to perform this action.',
     'not-found':                  'The requested document was not found.',

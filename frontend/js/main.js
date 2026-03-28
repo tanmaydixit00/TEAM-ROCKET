@@ -20,6 +20,7 @@ let storageManager;
 let fileManager;
 let currentRoute = 'my-files';
 let unsubscribeListener = null;
+const permissionRetryByRoute = new Set();
 
 // ── Wire up UI immediately (no auth needed for navigation) ─
 setupNavListeners();
@@ -40,7 +41,9 @@ if (firebaseReady) {
 // ── Authenticated init ────────────────────────────────────
 function initAuthedUI(user) {
   storageManager = new StorageManager();
-  fileManager = new FileManager(user.uid);
+  fileManager = new FileManager(user.uid, user.email);
+
+  const profile = resolveUserProfile(user);
 
   // Hydrate header
   const userEmailEl = document.querySelector('.user-email');
@@ -48,11 +51,10 @@ function initAuthedUI(user) {
   const userAvatarEl = document.querySelector('.user-profile img');
 
   if (userEmailEl) userEmailEl.textContent = user.email || '';
-  if (userNameEl)  userNameEl.textContent  = user.displayName || user.email || 'User';
+  if (userNameEl)  userNameEl.textContent  = profile.name;
   if (userAvatarEl) {
-    userAvatarEl.src =
-      user.photoURL ||
-      `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || user.email || 'User')}&background=667eea&color=fff`;
+    userAvatarEl.src = profile.photoUrl;
+    userAvatarEl.alt = `${profile.name} avatar`;
   }
 
   setupAuthListeners();
@@ -164,11 +166,27 @@ function switchRoute(route) {
   renderLoading();
 
   const cb = (files) => renderFiles(files);
-  if (route === 'my-files')  unsubscribeListener = fileManager.listenMyFiles(cb);
-  else if (route === 'shared')   unsubscribeListener = fileManager.listenSharedWithMe(cb);
-  else if (route === 'starred')  unsubscribeListener = fileManager.listenStarred(cb);
-  else if (route === 'recent')   unsubscribeListener = fileManager.listenRecent(cb);
-  else if (route === 'trash')    unsubscribeListener = fileManager.listenTrash(cb);
+  const onRouteError = async (error) => {
+    if (error?.code === 'permission-denied' && !permissionRetryByRoute.has(route) && auth.currentUser) {
+      permissionRetryByRoute.add(route);
+      try {
+        await auth.currentUser.getIdToken(true);
+        switchRoute(route);
+        return;
+      } catch (refreshErr) {
+        logError('Auth token refresh', refreshErr);
+      }
+    }
+
+    logError(`Load ${route} files`, error);
+    renderRouteError(error);
+  };
+
+  if (route === 'my-files')  unsubscribeListener = fileManager.listenMyFiles(cb, onRouteError);
+  else if (route === 'shared')   unsubscribeListener = fileManager.listenSharedWithMe(cb, onRouteError);
+  else if (route === 'starred')  unsubscribeListener = fileManager.listenStarred(cb, onRouteError);
+  else if (route === 'recent')   unsubscribeListener = fileManager.listenRecent(cb, onRouteError);
+  else if (route === 'trash')    unsubscribeListener = fileManager.listenTrash(cb, onRouteError);
 }
 
 // ── Render helpers ────────────────────────────────────────
@@ -180,6 +198,8 @@ function renderLoading() {
 function renderFiles(files) {
   const el = document.getElementById('filesList');
   if (!el) return;
+
+  permissionRetryByRoute.delete(currentRoute);
 
   if (!files || files.length === 0) {
     el.innerHTML = `<div class="empty-state"><i class="fas fa-folder-open"></i><p>No files here yet</p></div>`;
@@ -216,6 +236,35 @@ function renderFiles(files) {
     </div>`).join('');
 }
 
+function renderRouteError(error) {
+  const el = document.getElementById('filesList');
+  if (!el) return;
+
+  const message = friendlyFirebaseError(error);
+  el.innerHTML = `
+    <div class="empty-state" style="color:#ffb4b4;">
+      <i class="fas fa-triangle-exclamation"></i>
+      <p>${escapeHtml(message)}</p>
+    </div>`;
+
+  showError(message);
+}
+
+function resolveUserProfile(user) {
+  const providerProfiles = Array.isArray(user?.providerData) ? user.providerData : [];
+  const providerName = providerProfiles.find((item) => item?.displayName)?.displayName || '';
+  const providerPhoto = providerProfiles.find((item) => item?.photoURL)?.photoURL || '';
+
+  const email = String(user?.email || '').trim();
+  const emailAlias = email.includes('@') ? email.split('@')[0] : '';
+
+  const name = String(user?.displayName || providerName || emailAlias || 'User').trim();
+  const photoUrl = String(user?.photoURL || providerPhoto || '').trim() ||
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=667eea&color=fff`;
+
+  return { name, photoUrl };
+}
+
 // ── Upload ────────────────────────────────────────────────
 async function handleFiles(fileList) {
   const files = Array.from(fileList || []);
@@ -226,22 +275,43 @@ async function handleFiles(fileList) {
 
   const uploadZone = document.getElementById('uploadZone');
   const uploadText = uploadZone?.querySelector('p');
+  const uploadBtn = document.getElementById('uploadBtn');
 
-  for (const file of files) {
-    try {
-      if (uploadText) uploadText.textContent = `Uploading ${file.name}…`;
-      const { path, url } = await storageManager.uploadFile(file, user.uid);
-      await fileManager.addFileMetadata({
-        name: file.name, size: file.size, type: file.type,
-        storagePath: path, storageUrl: url, ownerEmail: user.email,
-      });
-    } catch (err) {
-      logError('Upload', err);
-      showError(`Failed to upload ${file.name}: ${friendlyFirebaseError(err)}`);
+  if (uploadBtn) uploadBtn.disabled = true;
+
+  try {
+    for (const file of files) {
+      try {
+        if (uploadText) uploadText.textContent = `Preparing upload for ${file.name}…`;
+        const { path, url } = await storageManager.uploadFile(
+          file,
+          user.uid,
+          (pct) => {
+            if (uploadText) uploadText.textContent = `Uploading ${file.name} (${pct}%)…`;
+          }
+        );
+        await fileManager.addFileMetadata({
+          name: file.name, size: file.size, type: file.type,
+          storagePath: path, storageUrl: url, ownerEmail: user.email,
+        });
+        showSuccess(`${file.name} uploaded successfully.`);
+      } catch (err) {
+        logError('Upload', err);
+        const message = friendlyFirebaseError(err);
+        showError(`Failed to upload ${file.name}: ${message}`);
+        if (uploadText) uploadText.textContent = `Upload failed for ${file.name}: ${message}`;
+
+        // Stop processing more files if project storage itself is unavailable.
+        if (err?.code === 'storage/bucket-not-found') {
+          break;
+        }
+      }
     }
+  } finally {
+    if (uploadBtn) uploadBtn.disabled = false;
+    if (uploadText) uploadText.innerHTML = 'Drag &amp; drop files or <span>browse</span>';
   }
 
-  if (uploadText) uploadText.innerHTML = 'Drag &amp; drop files or <span>browse</span>';
   const input = document.getElementById('fileInput');
   if (input) input.value = '';
 }

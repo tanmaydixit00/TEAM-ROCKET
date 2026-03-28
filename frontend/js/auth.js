@@ -85,9 +85,53 @@ function friendlyError(code) {
     'auth/too-many-requests': 'Too many failed attempts. Please try again later.',
     'auth/network-request-failed': 'Network error. Check your internet connection.',
     'auth/invalid-credential': 'Invalid email or password.',
+    'auth/popup-closed-by-user': 'Sign-in popup was closed before completion.',
+    'auth/popup-blocked': 'Popup was blocked by your browser. Allow popups and try again.',
+    'auth/cancelled-popup-request': 'Another sign-in popup is already open.',
+    'auth/operation-not-allowed': 'This sign-in method is not enabled in Firebase Auth settings.',
   };
   return map[code] || 'Something went wrong. Please try again.';
 }
+
+async function signInWithProvider(providerType, buttonEl) {
+  const originalHtml = buttonEl?.innerHTML;
+  let provider;
+
+  if (providerType === 'google') {
+    provider = new firebase.auth.GoogleAuthProvider();
+  } else if (providerType === 'github') {
+    provider = new firebase.auth.GithubAuthProvider();
+  } else {
+    showError('Unsupported sign-in provider.');
+    return;
+  }
+
+  try {
+    if (buttonEl) {
+      buttonEl.disabled = true;
+      buttonEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connecting...';
+    }
+
+    await auth.signInWithPopup(provider);
+    // onAuthStateChanged will redirect to index.html
+  } catch (error) {
+    showError(friendlyError(error.code));
+  } finally {
+    if (buttonEl) {
+      buttonEl.disabled = false;
+      buttonEl.innerHTML = originalHtml;
+    }
+  }
+}
+
+// ── Social Login ──────────────────────────────────────────
+document.querySelector('.social-btn.google')?.addEventListener('click', (e) => {
+  signInWithProvider('google', e.currentTarget);
+});
+
+document.querySelector('.social-btn.github')?.addEventListener('click', (e) => {
+  signInWithProvider('github', e.currentTarget);
+});
 
 // ── Login ─────────────────────────────────────────────────
 document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
