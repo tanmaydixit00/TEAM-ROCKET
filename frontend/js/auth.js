@@ -1,11 +1,20 @@
-import { authAPI } from './api.js';
+import { firebaseConfig } from './config.js';
 
-// Redirect to dashboard if already logged in
-if (localStorage.getItem('token')) {
-  window.location.href = 'index.html';
+// Initialize Firebase (only once — guard against double-init)
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
 }
 
-// Tab switching
+const auth = firebase.auth();
+
+// Redirect to dashboard if already logged in
+auth.onAuthStateChanged((user) => {
+  if (user) {
+    window.location.href = 'index.html';
+  }
+});
+
+// ── Tab switching ─────────────────────────────────────────
 document.querySelectorAll('.auth-tab').forEach((tab) => {
   tab.addEventListener('click', () => {
     const targetTab = tab.dataset.tab;
@@ -21,7 +30,7 @@ document.querySelectorAll('.auth-tab').forEach((tab) => {
   });
 });
 
-// Password visibility toggle
+// ── Password visibility toggle ────────────────────────────
 document.querySelectorAll('.toggle-password').forEach((btn) => {
   btn.addEventListener('click', () => {
     const wrapper = btn.closest('.password-input');
@@ -31,17 +40,15 @@ document.querySelectorAll('.toggle-password').forEach((btn) => {
 
     if (input.type === 'password') {
       input.type = 'text';
-      icon.classList.remove('fa-eye');
-      icon.classList.add('fa-eye-slash');
+      icon.classList.replace('fa-eye', 'fa-eye-slash');
     } else {
       input.type = 'password';
-      icon.classList.remove('fa-eye-slash');
-      icon.classList.add('fa-eye');
+      icon.classList.replace('fa-eye-slash', 'fa-eye');
     }
   });
 });
 
-// Password strength indicator
+// ── Password strength indicator ───────────────────────────
 const signupPassword = document.getElementById('signupPassword');
 if (signupPassword) {
   signupPassword.addEventListener('input', (e) => {
@@ -59,6 +66,7 @@ if (signupPassword) {
   });
 }
 
+// ── Error display ─────────────────────────────────────────
 function showError(message) {
   const errorDiv = document.getElementById('authError');
   if (!errorDiv) return;
@@ -66,26 +74,39 @@ function showError(message) {
   errorDiv.style.display = 'block';
 }
 
-// Login form submission
+// Map Firebase error codes to user-friendly messages
+function friendlyError(code) {
+  const map = {
+    'auth/invalid-email': 'Please enter a valid email address.',
+    'auth/user-not-found': 'No account found with this email.',
+    'auth/wrong-password': 'Incorrect password.',
+    'auth/email-already-in-use': 'An account with this email already exists.',
+    'auth/weak-password': 'Password must be at least 6 characters.',
+    'auth/too-many-requests': 'Too many failed attempts. Please try again later.',
+    'auth/network-request-failed': 'Network error. Check your internet connection.',
+    'auth/invalid-credential': 'Invalid email or password.',
+  };
+  return map[code] || 'Something went wrong. Please try again.';
+}
+
+// ── Login ─────────────────────────────────────────────────
 document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
 
   const email = document.getElementById('loginEmail')?.value?.trim();
   const password = document.getElementById('loginPassword')?.value;
-
   const submitBtn = e.target.querySelector('button[type="submit"]');
+
   try {
     if (submitBtn) {
       submitBtn.disabled = true;
       submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
     }
 
-    const data = await authAPI.login(email, password);
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('user', JSON.stringify(data.user));
-    window.location.href = 'index.html';
+    await auth.signInWithEmailAndPassword(email, password);
+    // onAuthStateChanged will redirect to index.html
   } catch (error) {
-    showError(error.message);
+    showError(friendlyError(error.code));
     if (submitBtn) {
       submitBtn.disabled = false;
       submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
@@ -93,32 +114,36 @@ document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
   }
 });
 
-// Signup form submission
+// ── Sign Up ───────────────────────────────────────────────
 document.getElementById('signupForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
 
   const name = document.getElementById('signupName')?.value?.trim();
   const email = document.getElementById('signupEmail')?.value?.trim();
   const password = document.getElementById('signupPassword')?.value;
+  const submitBtn = e.target.querySelector('button[type="submit"]');
 
   if (!password || password.length < 8) {
     showError('Password must be at least 8 characters long.');
     return;
   }
 
-  const submitBtn = e.target.querySelector('button[type="submit"]');
   try {
     if (submitBtn) {
       submitBtn.disabled = true;
       submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Account...';
     }
 
-    const data = await authAPI.register(name, email, password);
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('user', JSON.stringify(data.user));
-    window.location.href = 'index.html';
+    const { user } = await auth.createUserWithEmailAndPassword(email, password);
+
+    // Set display name
+    if (name) {
+      await user.updateProfile({ displayName: name });
+    }
+
+    // onAuthStateChanged will redirect to index.html
   } catch (error) {
-    showError(error.message);
+    showError(friendlyError(error.code));
     if (submitBtn) {
       submitBtn.disabled = false;
       submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Create Account';

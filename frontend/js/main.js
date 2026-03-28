@@ -1,54 +1,66 @@
-import { firebaseConfig } from "./config.js";
-import { StorageManager } from "./storage.js";
-import { FileManager } from "./FileManager.js";
+import { firebaseConfig } from './config.js';
+import { StorageManager } from './storage.js';
+import { FileManager } from './FileManager.js';
 
-// Initialize Firebase for Firestore file management
-firebase.initializeApp(firebaseConfig);
-
-// Check authentication using JWT from localStorage
-const token = localStorage.getItem('token');
-const userStr = localStorage.getItem('user');
-
-if (!token || !userStr) {
-  window.location.href = 'login.html';
-} else {
-  init(JSON.parse(userStr));
+// ── Firebase init ─────────────────────────────────────────
+let firebaseReady = false;
+try {
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
+  firebaseReady = true;
+} catch (e) {
+  showFatalError('Firebase initialization failed. Check your credentials in js/config.js.<br><code>' + e.message + '</code>');
 }
+
+const auth = firebase.auth();
 
 let storageManager;
 let fileManager;
 let currentRoute = 'my-files';
 let unsubscribeListener = null;
 
-function init(user) {
-  storageManager = new StorageManager();
-  fileManager = new FileManager(user.id);
+// ── Wire up UI immediately (no auth needed for navigation) ─
+setupNavListeners();
 
-  // Hydrate header with user info
+// ── Auth gate ─────────────────────────────────────────────
+if (firebaseReady) {
+  auth.onAuthStateChanged((user) => {
+    if (!user) {
+      window.location.href = 'login.html';
+      return;
+    }
+    initAuthedUI(user);
+  }, (err) => {
+    showFatalError('Authentication error: ' + err.message);
+  });
+}
+
+// ── Authenticated init ────────────────────────────────────
+function initAuthedUI(user) {
+  storageManager = new StorageManager();
+  fileManager = new FileManager(user.uid);
+
+  // Hydrate header
   const userEmailEl = document.querySelector('.user-email');
-  const userNameEl = document.querySelector('.user-name');
+  const userNameEl  = document.querySelector('.user-name');
   const userAvatarEl = document.querySelector('.user-profile img');
 
   if (userEmailEl) userEmailEl.textContent = user.email || '';
-  if (userNameEl) userNameEl.textContent = user.name || user.email || 'User';
+  if (userNameEl)  userNameEl.textContent  = user.displayName || user.email || 'User';
   if (userAvatarEl) {
-    userAvatarEl.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || user.email || 'User')}&background=667eea&color=fff`;
+    userAvatarEl.src =
+      user.photoURL ||
+      `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || user.email || 'User')}&background=667eea&color=fff`;
   }
 
-  setupEventListeners();
+  setupAuthListeners();
   switchRoute('my-files');
 }
 
-function setupEventListeners() {
-  // Logout: clear JWT and redirect to login
-  document.getElementById('logoutBtn')?.addEventListener('click', () => {
-    if (unsubscribeListener) unsubscribeListener();
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    window.location.href = 'login.html';
-  });
-
-  // Sidebar navigation tabs
+// ── Nav & view listeners (no auth required) ───────────────
+function setupNavListeners() {
+  // Sidebar tabs
   document.querySelectorAll('.nav-item[data-route]').forEach((item) => {
     item.addEventListener('click', (e) => {
       e.preventDefault();
@@ -56,186 +68,268 @@ function setupEventListeners() {
     });
   });
 
-  // View toggle (grid / list)
+  // Grid / List view toggle
   document.querySelectorAll('.view-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.view-btn').forEach((b) => b.classList.remove('active'));
       btn.classList.add('active');
-
-      const view = btn.dataset.view;
       const filesList = document.getElementById('filesList');
       if (!filesList) return;
-
-      if (view === 'list') {
-        filesList.classList.remove('files-grid');
-        filesList.classList.add('files-list');
+      if (btn.dataset.view === 'list') {
+        filesList.classList.replace('files-grid', 'files-list');
       } else {
-        filesList.classList.remove('files-list');
-        filesList.classList.add('files-grid');
+        filesList.classList.replace('files-list', 'files-grid');
       }
     });
   });
 
-  // File upload handlers
-  document.getElementById('fileInput')?.addEventListener('change', (e) => handleFiles(e.target.files));
-
-  const uploadZone = document.getElementById('uploadZone');
-  uploadZone?.addEventListener('dragover', (e) => e.preventDefault());
-  uploadZone?.addEventListener('drop', (e) => {
-    e.preventDefault();
-    handleFiles(e.dataTransfer.files);
+  // Share modal close on backdrop click
+  document.getElementById('shareModal')?.addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) e.currentTarget.style.display = 'none';
   });
 }
 
+// ── Auth-dependent listeners ──────────────────────────────
+function setupAuthListeners() {
+  // Logout / Sign Out
+  document.getElementById('logoutBtn')?.addEventListener('click', async () => {
+    if (unsubscribeListener) unsubscribeListener();
+    await auth.signOut();
+    // onAuthStateChanged fires with null → redirect to login.html
+  });
+
+  // Upload button → open file picker
+  document.getElementById('uploadBtn')?.addEventListener('click', () => {
+    document.getElementById('fileInput')?.click();
+  });
+
+  // File input change
+  document.getElementById('fileInput')?.addEventListener('change', (e) =>
+    handleFiles(e.target.files)
+  );
+
+  // Drag & drop
+  const uploadZone = document.getElementById('uploadZone');
+  uploadZone?.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadZone.classList.add('drag-over');
+  });
+  uploadZone?.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+  uploadZone?.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadZone.classList.remove('drag-over');
+    handleFiles(e.dataTransfer.files);
+  });
+
+  // Share confirm button
+  document.getElementById('shareFileBtn')?.addEventListener('click', shareHandler);
+}
+
+// ── Routing ───────────────────────────────────────────────
 function switchRoute(route) {
+  // Don't switch if file manager isn't ready yet
+  if (!fileManager && route !== currentRoute) {
+    // Still update active state in sidebar
+    document.querySelectorAll('.nav-item').forEach((n) => n.classList.remove('active'));
+    document.querySelector(`.nav-item[data-route="${route}"]`)?.classList.add('active');
+    return;
+  }
+
   currentRoute = route;
 
   document.querySelectorAll('.nav-item').forEach((n) => n.classList.remove('active'));
   document.querySelector(`.nav-item[data-route="${route}"]`)?.classList.add('active');
 
+  const titleMap = {
+    'my-files': 'My Files',
+    shared:     'Shared with Me',
+    starred:    'Starred',
+    recent:     'Recent',
+    trash:      'Trash',
+  };
+  const titleEl = document.getElementById('pageTitle');
+  if (titleEl) titleEl.textContent = titleMap[route] || 'Files';
+
+  // Upload zone only on my-files
   const uploadZone = document.getElementById('uploadZone');
   if (uploadZone) uploadZone.style.display = route === 'my-files' ? '' : 'none';
 
+  if (!fileManager) return;
+
+  // Tear down old real-time listener
   if (unsubscribeListener) unsubscribeListener();
   unsubscribeListener = null;
 
-  const cb = (files) => renderIfNonEmpty(files);
+  renderLoading();
 
-  if (route === 'my-files') unsubscribeListener = fileManager.listenMyFiles(cb);
-  else if (route === 'shared') unsubscribeListener = fileManager.listenSharedWithMe(cb);
-  else if (route === 'starred') unsubscribeListener = fileManager.listenStarred(cb);
-  else if (route === 'recent') unsubscribeListener = fileManager.listenRecent(cb);
-  else if (route === 'trash') unsubscribeListener = fileManager.listenTrash(cb);
+  const cb = (files) => renderFiles(files);
+  if (route === 'my-files')  unsubscribeListener = fileManager.listenMyFiles(cb);
+  else if (route === 'shared')   unsubscribeListener = fileManager.listenSharedWithMe(cb);
+  else if (route === 'starred')  unsubscribeListener = fileManager.listenStarred(cb);
+  else if (route === 'recent')   unsubscribeListener = fileManager.listenRecent(cb);
+  else if (route === 'trash')    unsubscribeListener = fileManager.listenTrash(cb);
 }
 
-function renderIfNonEmpty(files) {
-  if (!files || files.length === 0) return;
+// ── Render helpers ────────────────────────────────────────
+function renderLoading() {
+  const el = document.getElementById('filesList');
+  if (el) el.innerHTML = `<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading files…</p></div>`;
+}
 
-  const filesList = document.getElementById('filesList');
-  if (!filesList) return;
+function renderFiles(files) {
+  const el = document.getElementById('filesList');
+  if (!el) return;
 
-  filesList.innerHTML = files
-    .map(
-      (file) => `
-      <div class="file-card" data-file-id="${file.id}">
-        <div class="file-icon ${storageManager.getFileIcon(file.name)}">
-          <i class="fas ${storageManager.getFontAwesomeIcon(file.name)}"></i>
-        </div>
-        <div class="file-details">
-          <h3 title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</h3>
-          <p class="file-meta">
-            <span>${formatFileSize(file.size)}</span>
-            <span>•</span>
-            <span>${formatDate(file.createdAt)}</span>
-          </p>
-        </div>
-        <div class="file-actions">
-          <button class="action-btn" onclick="window.open('${file.storageUrl}', '_blank')" title="View">
-            <i class="fas fa-eye"></i>
-          </button>
-          <button class="action-btn" onclick="openShareModal('${file.id}')" title="Share">
-            <i class="fas fa-share-nodes"></i>
-          </button>
-          <button class="action-btn" onclick="downloadFile('${file.storagePath}', '${escapeAttr(file.name)}')" title="Download">
-            <i class="fas fa-download"></i>
-          </button>
-          <button class="action-btn delete" onclick="deleteFile('${file.id}', '${file.storagePath}')" title="Delete">
-            <i class="fas fa-trash"></i>
-          </button>
-        </div>
+  if (!files || files.length === 0) {
+    el.innerHTML = `<div class="empty-state"><i class="fas fa-folder-open"></i><p>No files here yet</p></div>`;
+    return;
+  }
+
+  el.innerHTML = files.map((file) => `
+    <div class="file-card" data-file-id="${file.id}">
+      <div class="file-icon ${storageManager.getFileIcon(file.name)}">
+        <i class="fas ${storageManager.getFontAwesomeIcon(file.name)}"></i>
       </div>
-    `
-    )
-    .join('');
+      <div class="file-details">
+        <h3 title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</h3>
+        <p class="file-meta">
+          <span>${formatFileSize(file.size)}</span>
+          <span>•</span>
+          <span>${formatDate(file.createdAt?.toDate ? file.createdAt.toDate() : file.createdAt)}</span>
+        </p>
+      </div>
+      <div class="file-actions">
+        <button class="action-btn" onclick="window.open('${file.storageUrl}','_blank')" title="View">
+          <i class="fas fa-eye"></i>
+        </button>
+        <button class="action-btn" onclick="openShareModal('${file.id}')" title="Share">
+          <i class="fas fa-share-nodes"></i>
+        </button>
+        <button class="action-btn" onclick="downloadFile('${file.storagePath}','${escapeAttr(file.name)}')" title="Download">
+          <i class="fas fa-download"></i>
+        </button>
+        <button class="action-btn delete" onclick="deleteFile('${file.id}','${file.storagePath}')" title="Delete">
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
+    </div>`).join('');
 }
 
+// ── Upload ────────────────────────────────────────────────
 async function handleFiles(fileList) {
   const files = Array.from(fileList || []);
   if (!files.length) return;
 
-  const user = JSON.parse(localStorage.getItem('user'));
+  const user = auth.currentUser;
+  if (!user) return;
+
+  const uploadZone = document.getElementById('uploadZone');
+  const uploadText = uploadZone?.querySelector('p');
 
   for (const file of files) {
-    const { path, url } = await storageManager.uploadFile(file, user.id);
-    await fileManager.addFileMetadata({
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      storagePath: path,
-      storageUrl: url,
-      ownerEmail: user.email,
-    });
+    try {
+      if (uploadText) uploadText.textContent = `Uploading ${file.name}…`;
+      const { path, url } = await storageManager.uploadFile(file, user.uid);
+      await fileManager.addFileMetadata({
+        name: file.name, size: file.size, type: file.type,
+        storagePath: path, storageUrl: url, ownerEmail: user.email,
+      });
+    } catch (err) {
+      console.error('Upload failed:', err);
+      alert(`Failed to upload ${file.name}: ${err.message}`);
+    }
   }
 
+  if (uploadText) uploadText.innerHTML = 'Drag &amp; drop files or <span>browse</span>';
   const input = document.getElementById('fileInput');
   if (input) input.value = '';
 }
 
+// ── Share ─────────────────────────────────────────────────
 let shareFileId = null;
 
 window.openShareModal = (fileId) => {
   shareFileId = fileId;
   const modal = document.getElementById('shareModal');
-  if (modal) modal.style.display = 'block';
+  if (modal) modal.style.display = 'flex';
 };
 
-document.getElementById('shareFileBtn')?.addEventListener('click', async () => {
+async function shareHandler() {
   const email = document.getElementById('shareEmail')?.value?.trim();
-  if (!email) return alert('Enter email');
+  if (!email) return alert('Please enter an email address.');
+  try {
+    await fileManager.shareFile(shareFileId, email);
+    document.getElementById('shareEmail').value = '';
+    document.getElementById('shareModal').style.display = 'none';
+  } catch (err) {
+    alert(`Share failed: ${err.message}`);
+  }
+}
 
-  await fileManager.shareFile(shareFileId, email);
-
-  document.getElementById('shareEmail').value = '';
-  const modal = document.getElementById('shareModal');
-  if (modal) modal.style.display = 'none';
-});
-
+// ── Download ──────────────────────────────────────────────
 window.downloadFile = async (storagePath, fileName) => {
-  const blob = await storageManager.downloadFile(storagePath);
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = fileName;
-  document.body.appendChild(a);
-  a.click();
-  URL.revokeObjectURL(url);
-  a.remove();
+  try {
+    const blob = await storageManager.downloadFile(storagePath);
+    const url = URL.createObjectURL(blob);
+    const a = Object.assign(document.createElement('a'), { href: url, download: fileName });
+    document.body.appendChild(a);
+    a.click();
+    URL.revokeObjectURL(url);
+    a.remove();
+  } catch (err) {
+    alert(`Download failed: ${err.message}`);
+  }
 };
 
+// ── Delete ────────────────────────────────────────────────
 window.deleteFile = async (fileId, storagePath) => {
-  if (!confirm('Delete permanently?')) return;
-  await storageManager.deleteFile(storagePath);
-  await fileManager.deleteFile(fileId);
+  if (!confirm('Move this file to trash?')) return;
+  try {
+    await storageManager.deleteFile(storagePath);
+    await fileManager.deleteFile(fileId);
+  } catch (err) {
+    alert(`Delete failed: ${err.message}`);
+  }
 };
 
+// ── Fatal error display ───────────────────────────────────
+function showFatalError(html) {
+  const el = document.getElementById('filesList');
+  if (el) {
+    el.innerHTML = `
+      <div class="empty-state" style="color:#ff6b6b;">
+        <i class="fas fa-triangle-exclamation"></i>
+        <p>${html}</p>
+      </div>`;
+  }
+  console.error('MiniCloud:', html);
+}
+
+// ── Utils ─────────────────────────────────────────────────
 function formatFileSize(bytes) {
   if (!bytes && bytes !== 0) return '—';
   if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+  const k = 1024, sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return Math.round((bytes / Math.pow(k, i)) * 10) / 10 + ' ' + sizes[i];
 }
 
 function formatDate(date) {
   if (!date) return 'Unknown';
-  const now = new Date();
-  const diffDays = Math.floor(Math.abs(now - date) / (1000 * 60 * 60 * 24));
+  const d = date instanceof Date ? date : new Date(date);
+  const diffDays = Math.floor(Math.abs(new Date() - d) / 86400000);
   if (diffDays === 0) return 'Today';
   if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) return `${diffDays} days ago`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+  if (diffDays < 7)   return `${diffDays} days ago`;
+  if (diffDays < 30)  return `${Math.floor(diffDays / 7)} weeks ago`;
   if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
   return `${Math.floor(diffDays / 365)} years ago`;
 }
 
 function escapeHtml(str) {
   return String(str || '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
+    .replaceAll('&','&amp;').replaceAll('<','&lt;')
+    .replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 }
 
 function escapeAttr(str) {

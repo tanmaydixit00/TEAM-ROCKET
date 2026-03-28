@@ -1,14 +1,8 @@
 export const firebaseConfig = {
-  apiKey: "YOUR_FIREBASE_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
-};
-
-export const supabaseConfig = {
-  url: "YOUR_SUPABASE_URL",
-  anonKey: "YOUR_SUPABASE_ANON_KEY",
-  bucketName: "files" 
+  apiKey: "AIzaSyAgfMgkTinrNo-yauAGyZDY7grTpmo8i2c",
+  authDomain: "minicloud-6df35.firebaseapp.com",
+  projectId: "minicloud-6df35",
+  storageBucket: "minicloud-6df35.firebasestorage.app",
+  messagingSenderId: "953691126064",
+  appId: "1:953691126064:web:754a80c8abf23aa10e30f5"
 };
