@@ -1,11 +1,5 @@
-import { firebaseConfig } from './config.js';
-
-// Initialize Firebase (only once — guard against double-init)
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
-
-const auth = firebase.auth();
+import { auth } from './firebase-init.js';
+import { logError } from './errorHandler.js';
 
 // Redirect to dashboard if already logged in
 auth.onAuthStateChanged((user) => {
@@ -106,6 +100,7 @@ document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
     await auth.signInWithEmailAndPassword(email, password);
     // onAuthStateChanged will redirect to index.html
   } catch (error) {
+    logError('Login', error);
     showError(friendlyError(error.code));
     if (submitBtn) {
       submitBtn.disabled = false;
@@ -143,6 +138,7 @@ document.getElementById('signupForm')?.addEventListener('submit', async (e) => {
 
     // onAuthStateChanged will redirect to index.html
   } catch (error) {
+    logError('Sign up', error);
     showError(friendlyError(error.code));
     if (submitBtn) {
       submitBtn.disabled = false;

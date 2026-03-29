@@ -7,6 +7,10 @@
 
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Firebase SDK (compat) — loaded in <head> so it is available when auth.js runs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 </head>
 <body class="auth-page">
     <div class="background-animation">
@@ -122,10 +126,6 @@
             </div>
         </section>
     </main>
-
-    <!-- Firebase SDK (compat) -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 
     <!-- Auth logic -->
     <script type="module" src="js/auth.js"></script>
