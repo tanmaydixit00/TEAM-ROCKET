@@ -1,20 +1,11 @@
-import { firebaseConfig } from './config.js';
+import { auth } from './firebase-init.js';
 import { StorageManager } from './storage.js';
 import { FileManager } from './FileManager.js';
 import { showError, showSuccess, logError, friendlyFirebaseError } from './errorHandler.js';
 
 // ── Firebase init ─────────────────────────────────────────
-let firebaseReady = false;
-try {
-  if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-  }
-  firebaseReady = true;
-} catch (e) {
-  showFatalError('Firebase initialization failed. Check your credentials in js/config.js.<br><code>' + e.message + '</code>');
-}
-
-const auth = firebase.auth();
+// Initialization is handled by firebase-init.js; if it throws the page will
+// display the browser's uncaught-error indicator.
 
 let storageManager;
 let fileManager;
@@ -25,17 +16,15 @@ let unsubscribeListener = null;
 setupNavListeners();
 
 // ── Auth gate ─────────────────────────────────────────────
-if (firebaseReady) {
-  auth.onAuthStateChanged((user) => {
-    if (!user) {
-      window.location.href = 'login.html';
-      return;
-    }
-    initAuthedUI(user);
-  }, (err) => {
-    showFatalError('Authentication error: ' + err.message);
-  });
-}
+auth.onAuthStateChanged((user) => {
+  if (!user) {
+    window.location.href = 'login.html';
+    return;
+  }
+  initAuthedUI(user);
+}, (err) => {
+  showFatalError('Authentication error: ' + err.message);
+});
 
 // ── Authenticated init ────────────────────────────────────
 function initAuthedUI(user) {

@@ -27,6 +27,16 @@ body {
   color: var(--text);
 }
 
+/* Hidden file input — position-based so browsers still allow programmatic .click() */
+.file-input-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
 /* APP LAYOUT */
 #app {
   display: flex;

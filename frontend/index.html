@@ -9,6 +9,12 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Firebase SDK (compat) — loaded in <head> so it is available when main.js runs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 </head>
 
 <body>
@@ -86,7 +92,7 @@
       <div class="upload-box" id="uploadZone">
         <i class="fas fa-cloud-upload-alt"></i>
         <p>Drag &amp; drop files or <span>browse</span></p>
-        <input type="file" multiple id="fileInput" style="display:none;">
+        <input type="file" multiple id="fileInput" class="file-input-hidden">
       </div>
 
       <!-- FILE GRID — populated by main.js via Firestore -->
@@ -120,12 +126,6 @@
     </div>
   </div>
 </div>
-
-<!-- Firebase SDK (compat — works with firebase.xxx() global API) -->
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 
 <!-- App entry point -->
 <script type="module" src="js/main.js"></script>
