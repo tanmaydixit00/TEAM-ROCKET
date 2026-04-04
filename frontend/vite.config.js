@@ -13,18 +13,7 @@ const requiredEnvVars = [
 
 const missing = requiredEnvVars.filter((key) => !process.env[key])
 if (missing.length > 0) {
-  console.warn(
-    `[MiniCloud] WARNING: Missing environment variables:\n  ${missing.join('\n  ')}\n` +
-    'Set them in your deployment platform or in frontend/.env before building.\n' +
-    'See frontend/.env.example for the full list.'
-  )
+  throw new Error(`Missing required environment variables:\n  ${missing.join('\n  ')}\nSee frontend/.env.example for the full list.`)
 }
 
-export default defineConfig({
-  // Explicitly set output directory so Vercel and other deployment platforms
-  // can locate the build artefacts without relying on defaults.
-  build: {
-    outDir: 'dist',
-    emptyOutDir: true,
-  },
-})
+export default defineConfig({})
