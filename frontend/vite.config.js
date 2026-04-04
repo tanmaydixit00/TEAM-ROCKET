@@ -1,19 +1,12 @@
 import { defineConfig } from 'vite'
 
-const requiredEnvVars = [
-  'VITE_FIREBASE_API_KEY',
-  'VITE_FIREBASE_AUTH_DOMAIN',
-  'VITE_FIREBASE_PROJECT_ID',
-  'VITE_FIREBASE_STORAGE_BUCKET',
-  'VITE_FIREBASE_MESSAGING_SENDER_ID',
-  'VITE_FIREBASE_APP_ID',
-  'VITE_SUPABASE_URL',
-  'VITE_SUPABASE_ANON_KEY',
-]
+// Environment variable validation is intentionally omitted here so that
+// `vite build` succeeds even when variables are not present at build time.
+// Runtime validation is handled in frontend/js/config.js using import.meta.env.
 
-const missing = requiredEnvVars.filter((key) => !process.env[key])
-if (missing.length > 0) {
-  throw new Error(`Missing required environment variables:\n  ${missing.join('\n  ')}\nSee frontend/.env.example for the full list.`)
-}
-
-export default defineConfig({})
+export default defineConfig({
+  root: '.',
+  build: {
+    outDir: 'dist',
+  },
+})
