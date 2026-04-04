@@ -28,46 +28,61 @@ export class FileManager {
     return docRef.id;
   }
 
-  listenMyFiles(callback) {
+  listenMyFiles(callback, errorCallback) {
     return this.filesCollection
       .where('ownerId', '==', this.userId)
       .where('trashed', '==', false)
       .orderBy('createdAt', 'desc')
-      .onSnapshot((snap) => callback(snap.docs.map((d) => ({ id: d.id, ...d.data() }))));
+      .onSnapshot(
+        (snap) => callback(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
+        errorCallback
+      );
   }
 
-  listenSharedWithMe(callback) {
+  listenSharedWithMe(callback, errorCallback) {
     return this.filesCollection
       .where('sharedWith', 'array-contains', this.userId)
       .where('trashed', '==', false)
       .orderBy('createdAt', 'desc')
-      .onSnapshot((snap) => callback(snap.docs.map((d) => ({ id: d.id, ...d.data() }))));
+      .onSnapshot(
+        (snap) => callback(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
+        errorCallback
+      );
   }
 
-  listenStarred(callback) {
+  listenStarred(callback, errorCallback) {
     return this.filesCollection
       .where('ownerId', '==', this.userId)
       .where('starred', '==', true)
       .where('trashed', '==', false)
       .orderBy('createdAt', 'desc')
-      .onSnapshot((snap) => callback(snap.docs.map((d) => ({ id: d.id, ...d.data() }))));
+      .onSnapshot(
+        (snap) => callback(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
+        errorCallback
+      );
   }
 
-  listenRecent(callback) {
+  listenRecent(callback, errorCallback) {
     return this.filesCollection
       .where('ownerId', '==', this.userId)
       .where('trashed', '==', false)
       .orderBy('createdAt', 'desc')
       .limit(10)
-      .onSnapshot((snap) => callback(snap.docs.map((d) => ({ id: d.id, ...d.data() }))));
+      .onSnapshot(
+        (snap) => callback(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
+        errorCallback
+      );
   }
 
-  listenTrash(callback) {
+  listenTrash(callback, errorCallback) {
     return this.filesCollection
       .where('ownerId', '==', this.userId)
       .where('trashed', '==', true)
       .orderBy('createdAt', 'desc')
-      .onSnapshot((snap) => callback(snap.docs.map((d) => ({ id: d.id, ...d.data() }))));
+      .onSnapshot(
+        (snap) => callback(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
+        errorCallback
+      );
   }
 
   async shareFile(fileId, email) {

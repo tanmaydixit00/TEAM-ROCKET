@@ -153,11 +153,15 @@ function switchRoute(route) {
   renderLoading();
 
   const cb = (files) => renderFiles(files);
-  if (route === 'my-files')  unsubscribeListener = fileManager.listenMyFiles(cb);
-  else if (route === 'shared')   unsubscribeListener = fileManager.listenSharedWithMe(cb);
-  else if (route === 'starred')  unsubscribeListener = fileManager.listenStarred(cb);
-  else if (route === 'recent')   unsubscribeListener = fileManager.listenRecent(cb);
-  else if (route === 'trash')    unsubscribeListener = fileManager.listenTrash(cb);
+  const onErr = (err) => {
+    logError('Listener', err);
+    showFatalError(`Failed to load files: ${friendlyFirebaseError(err)}`);
+  };
+  if (route === 'my-files')  unsubscribeListener = fileManager.listenMyFiles(cb, onErr);
+  else if (route === 'shared')   unsubscribeListener = fileManager.listenSharedWithMe(cb, onErr);
+  else if (route === 'starred')  unsubscribeListener = fileManager.listenStarred(cb, onErr);
+  else if (route === 'recent')   unsubscribeListener = fileManager.listenRecent(cb, onErr);
+  else if (route === 'trash')    unsubscribeListener = fileManager.listenTrash(cb, onErr);
 }
 
 // ── Render helpers ────────────────────────────────────────
@@ -215,15 +219,22 @@ async function handleFiles(fileList) {
 
   const uploadZone = document.getElementById('uploadZone');
   const uploadText = uploadZone?.querySelector('p');
+  const uploadBtn  = document.getElementById('uploadBtn');
 
-  for (const file of files) {
+  if (uploadBtn) uploadBtn.disabled = true;
+
+  let successCount = 0;
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
     try {
-      if (uploadText) uploadText.textContent = `Uploading ${file.name}…`;
+      if (uploadText) uploadText.textContent = `Uploading ${file.name} (${i + 1}/${files.length})…`;
       const { path, url } = await storageManager.uploadFile(file, user.uid);
       await fileManager.addFileMetadata({
         name: file.name, size: file.size, type: file.type,
         storagePath: path, storageUrl: url, ownerEmail: user.email,
       });
+      successCount++;
     } catch (err) {
       logError('Upload', err);
       showError(`Failed to upload ${file.name}: ${friendlyFirebaseError(err)}`);
@@ -231,8 +242,13 @@ async function handleFiles(fileList) {
   }
 
   if (uploadText) uploadText.innerHTML = 'Drag &amp; drop files or <span>browse</span>';
+  if (uploadBtn) uploadBtn.disabled = false;
   const input = document.getElementById('fileInput');
   if (input) input.value = '';
+
+  if (successCount > 0) {
+    showSuccess(`${successCount} file${successCount > 1 ? 's' : ''} uploaded successfully.`);
+  }
 }
 
 // ── Share ─────────────────────────────────────────────────
