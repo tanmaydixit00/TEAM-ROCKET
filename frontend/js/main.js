@@ -11,9 +11,6 @@ let storageManager;
 let fileManager;
 let currentRoute = 'my-files';
 let unsubscribeListener = null;
-let loadingTimer = null;
-
-const LOADING_TIMEOUT_MS = 10000;
 
 // ── Wire up UI immediately (no auth needed for navigation) ─
 setupNavListeners();
@@ -24,6 +21,7 @@ auth.onAuthStateChanged((user) => {
     window.location.href = 'login.html';
     return;
   }
+  document.body.style.display = '';
   initAuthedUI(user);
 }, (err) => {
   showFatalError('Authentication error: ' + err.message);
@@ -103,8 +101,10 @@ function setupAuthListeners() {
 
   // Drag & drop and click-to-browse on upload zone
   const uploadZone = document.getElementById('uploadZone');
-  uploadZone?.addEventListener('click', () => {
-    document.getElementById('fileInput')?.click();
+  const fileInput = document.getElementById('fileInput');
+  uploadZone?.addEventListener('click', (e) => {
+    if (e.target === fileInput) return;
+    fileInput?.click();
   });
   uploadZone?.addEventListener('dragover', (e) => {
     e.preventDefault();
@@ -152,24 +152,16 @@ function switchRoute(route) {
 
   if (!fileManager) return;
 
-  // Tear down old real-time listener and cancel any pending loading timeout
+  // Tear down old real-time listener
   if (unsubscribeListener) unsubscribeListener();
   unsubscribeListener = null;
-  if (loadingTimer) { clearTimeout(loadingTimer); loadingTimer = null; }
 
   renderLoading();
 
-  loadingTimer = setTimeout(() => {
-    loadingTimer = null;
-    renderFiles([]);
-  }, LOADING_TIMEOUT_MS);
-
   const cb = (files) => {
-    if (loadingTimer) { clearTimeout(loadingTimer); loadingTimer = null; }
     renderFiles(files);
   };
   const onErr = (err) => {
-    if (loadingTimer) { clearTimeout(loadingTimer); loadingTimer = null; }
     logError('Listener', err);
     showFatalError(`Failed to load files: ${friendlyFirebaseError(err)}`);
   };
