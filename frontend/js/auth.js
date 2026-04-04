@@ -79,6 +79,10 @@ function friendlyError(code) {
     'auth/too-many-requests': 'Too many failed attempts. Please try again later.',
     'auth/network-request-failed': 'Network error. Check your internet connection.',
     'auth/invalid-credential': 'Invalid email or password.',
+    'auth/popup-closed-by-user': 'Sign-in popup was closed before completing.',
+    'auth/popup-blocked': 'Sign-in popup was blocked by the browser. Please allow popups for this site.',
+    'auth/cancelled-popup-request': 'Only one sign-in popup can be open at a time.',
+    'auth/account-exists-with-different-credential': 'An account already exists with the same email but a different sign-in method.',
   };
   return map[code] || 'Something went wrong. Please try again.';
 }
@@ -145,4 +149,32 @@ document.getElementById('signupForm')?.addEventListener('submit', async (e) => {
       submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Create Account';
     }
   }
+});
+
+// ── Google Sign-In ────────────────────────────────────────
+document.querySelectorAll('.social-btn.google').forEach((btn) => {
+  btn.addEventListener('click', async () => {
+    try {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      await auth.signInWithPopup(provider);
+      // onAuthStateChanged will redirect to index.html
+    } catch (error) {
+      logError('Google sign-in', error);
+      showError(friendlyError(error.code));
+    }
+  });
+});
+
+// ── GitHub Sign-In ────────────────────────────────────────
+document.querySelectorAll('.social-btn.github').forEach((btn) => {
+  btn.addEventListener('click', async () => {
+    try {
+      const provider = new firebase.auth.GithubAuthProvider();
+      await auth.signInWithPopup(provider);
+      // onAuthStateChanged will redirect to index.html
+    } catch (error) {
+      logError('GitHub sign-in', error);
+      showError(friendlyError(error.code));
+    }
+  });
 });
