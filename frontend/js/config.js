@@ -3,7 +3,8 @@
 //
 //  Values are read at build time from VITE_* environment variables.
 //  Set them in frontend/.env (see frontend/.env.example) or in
-//  your deployment platform's environment settings.
+//  your deployment platform's environment settings (e.g. Vercel →
+//  Project Settings → Environment Variables) BEFORE deploying.
 // ============================================================
 
 const missing = [
@@ -20,7 +21,9 @@ const missing = [
 if (missing.length > 0) {
   throw new Error(
     `[MiniCloud] Missing required environment variables:\n  ${missing.join('\n  ')}\n` +
-    'Copy frontend/.env.example to frontend/.env and fill in your credentials.'
+    'These must be set BEFORE building. Copy frontend/.env.example to frontend/.env\n' +
+    'and fill in your credentials, or add them to your deployment platform\'s\n' +
+    'Environment Variables settings (e.g. Vercel → Project Settings → Environment Variables).'
   );
 }
 
