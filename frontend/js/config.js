@@ -51,7 +51,7 @@ function env(key, fallback = '') {
 
 // ── Firebase config ────────────────────────────────────────────────────────
 export const firebaseConfig = {
-  apiKey:            env('API_KEY',             'AIzaSyAgfMgkTinrNo-yuaAGyZDY7grTpmo8i2c'),
+  apiKey:            env('API_KEY',             'AIzaSyAgfMgkTinrNo-yauAGyZDY7grTpmo8i2c'),
   authDomain:        env('AUTH_DOMAIN',         'minicloud-6df35.firebaseapp.com'),
   projectId:         env('PROJECT_ID',          'minicloud-6df35'),
   storageBucket:     env('STORAGE_BUCKET',      'minicloud-6df35.firebasestorage.app'),
