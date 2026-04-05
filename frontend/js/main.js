@@ -253,7 +253,7 @@ function renderItems(items) {
   const el = document.getElementById('filesList');
   if (!el) return;
 
-  permissionRetrySet.delete(currentRoute);
+  permissionRetrySet.clear();
 
   if (!items || items.length === 0) {
     const isTrash = currentRoute === 'trash';
@@ -271,8 +271,8 @@ function renderItems(items) {
     const cardClass = isFolder ? 'file-card folder-card' : 'file-card';
 
     const folderClick = isFolder
-      ? `onclick="window.openFolder('${item.id}','${escapeAttr(item.name)}')" `
-      : '';
+    ? `data-action="open-folder" data-id="${escapeAttr(item.id)}" data-name="${escapeAttr(item.name)}" `
+    : '';
 
     const iconHtml = isFolder
       ? `<div class="file-icon folder-icon"><i class="fas fa-folder"></i></div>`
@@ -291,36 +291,35 @@ function renderItems(items) {
     let actionsHtml = '';
     if (isTrash) {
       actionsHtml = `
-        <button class="action-btn restore" onclick="restoreFile('${item.id}')" title="Restore">
+        <button class="action-btn restore" data-action="restore" data-id="${escapeAttr(item.id)}" title="Restore">
           <i class="fas fa-rotate-left"></i>
         </button>
-        <button class="action-btn delete" onclick="permanentDeleteFile('${item.id}','${escapeAttr(item.storagePath || '')}')" title="Delete permanently">
+        <button class="action-btn delete" data-action="permanent-delete" data-id="${escapeAttr(item.id)}" data-storage-path="${escapeAttr(item.storagePath || '')}" title="Delete permanently">
           <i class="fas fa-trash"></i>
         </button>`;
     } else if (!isFolder) {
       actionsHtml = `
-        <button class="action-btn" onclick="toggleStar('${item.id}',${!item.starred})" title="${item.starred ? 'Unstar' : 'Star'}">
+        <button class="action-btn" data-action="toggle-star" data-id="${escapeAttr(item.id)}" data-starred="${!item.starred}" title="${item.starred ? 'Unstar' : 'Star'}">
           <i class="fas fa-star ${item.starred ? 'starred' : ''}"></i>
         </button>
-        <button class="action-btn" onclick="window.open('${item.storageUrl}','_blank')" title="View">
+        <button class="action-btn" data-action="view" data-url="${escapeAttr(item.storageUrl)}" title="View">
           <i class="fas fa-eye"></i>
         </button>
-        <button class="action-btn" onclick="openShareModal('${item.id}')" title="Share">
+        <button class="action-btn" data-action="share" data-id="${escapeAttr(item.id)}" title="Share">
           <i class="fas fa-share-nodes"></i>
         </button>
-        <button class="action-btn" onclick="downloadFile('${escapeAttr(item.storagePath)}','${escapeAttr(item.name)}')" title="Download">
+        <button class="action-btn" data-action="download" data-storage-path="${escapeAttr(item.storagePath)}" data-name="${escapeAttr(item.name)}" title="Download">
           <i class="fas fa-download"></i>
         </button>
-        <button class="action-btn delete" onclick="moveToTrash('${item.id}')" title="Move to Trash">
+        <button class="action-btn delete" data-action="move-to-trash" data-id="${escapeAttr(item.id)}" title="Move to Trash">
           <i class="fas fa-trash"></i>
         </button>`;
     } else {
-      // Folder (not trash) — just star + trash
       actionsHtml = `
-        <button class="action-btn" onclick="toggleStar('${item.id}',${!item.starred})" title="${item.starred ? 'Unstar' : 'Star'}">
+        <button class="action-btn" data-action="toggle-star" data-id="${escapeAttr(item.id)}" data-starred="${!item.starred}" title="${item.starred ? 'Unstar' : 'Star'}">
           <i class="fas fa-star ${item.starred ? 'starred' : ''}"></i>
         </button>
-        <button class="action-btn delete" onclick="moveToTrash('${item.id}')" title="Move to Trash">
+        <button class="action-btn delete" data-action="move-to-trash" data-id="${escapeAttr(item.id)}" title="Move to Trash">
           <i class="fas fa-trash"></i>
         </button>`;
     }
@@ -335,13 +334,57 @@ function renderItems(items) {
         <div class="file-actions">${actionsHtml}</div>
       </div>`;
   }).join('');
+
+  // ── Event delegation for all file-card actions ──────────
+  el.querySelectorAll('.file-card').forEach((card) => {
+    card.addEventListener('click', (e) => {
+      const folderBtn = e.target.closest('[data-action="open-folder"]');
+      if (folderBtn) {
+        e.stopPropagation();
+        if (currentRoute !== 'my-files') return;
+        navigateToFolder(folderBtn.dataset.id, folderBtn.dataset.name);
+        return;
+      }
+    });
+  });
+
+  el.querySelectorAll('.file-actions button').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const action = btn.dataset.action;
+      const id = btn.dataset.id;
+      switch (action) {
+        case 'toggle-star':
+          handleToggleStar(id, btn.dataset.starred === 'true', btn);
+          break;
+        case 'view':
+          window.open(btn.dataset.url, '_blank', 'noopener,noreferrer');
+          break;
+        case 'share':
+          handleOpenShareModal(id);
+          break;
+        case 'download':
+          handleDownloadFile(btn.dataset.storagePath, btn.dataset.name, btn);
+          break;
+        case 'move-to-trash':
+          handleMoveToTrash(id, btn);
+          break;
+        case 'restore':
+          handleRestoreFile(id, btn);
+          break;
+        case 'permanent-delete':
+          handlePermanentDelete(id, btn.dataset.storagePath, btn);
+          break;
+      }
+    });
+  });
 }
 
 // ── Open folder ────────────────────────────────────────────
-window.openFolder = (folderId, folderName) => {
+function openFolderFromCard(folderId, folderName) {
   if (currentRoute !== 'my-files') return;
   navigateToFolder(folderId, folderName);
-};
+}
 
 function renderRouteError(error) {
   const el = document.getElementById('filesList');
@@ -364,10 +407,16 @@ function resolveUserProfile(user) {
 }
 
 // ── Create Folder ──────────────────────────────────────────
+const FOLDER_NAME_RE = /^[^<>:"\\/|?*\x00-\x1f]{1,80}$/;
+
 async function handleCreateFolder() {
   const input = document.getElementById('folderName');
   const name  = input?.value?.trim();
   if (!name) { showError('Please enter a folder name.'); return; }
+  if (!FOLDER_NAME_RE.test(name)) {
+    showError('Folder name contains invalid characters.');
+    return;
+  }
 
   const btn = document.getElementById('createFolderBtn');
   if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating…'; }
@@ -386,6 +435,14 @@ async function handleCreateFolder() {
 }
 
 // ── Upload ─────────────────────────────────────────────────
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB
+const BLOCKED_EXTENSIONS = new Set([
+  'exe','bat','cmd','com','scr','pif','msi','vbs','js','ws','wsf','wsc','wsh',
+  'ps1','ps1xml','ps2','ps2xml','psc1','psc2','msh','msh1','msh2','mshxml',
+  'msh1xml','msh2xml','scf','lnk','inf','reg','cpl','dll','drv','sys',
+  'ade','adp','app','bas','chm','cpl','crt','hlp','hta','ins','isp','its',
+]);
+
 async function handleFiles(fileList) {
   const files = Array.from(fileList || []);
   if (!files.length) return;
@@ -394,22 +451,43 @@ async function handleFiles(fileList) {
   if (!user) { showError('Not authenticated.'); return; }
   if (!storageManager || !fileManager) { showError('Not ready — refresh page.'); return; }
 
+  const validFiles = [];
+  for (const file of files) {
+    if (file.size > MAX_FILE_SIZE) {
+      showError(`"${file.name}" exceeds the 100 MB limit.`);
+      continue;
+    }
+    const ext = file.name.split('.').pop()?.toLowerCase() || '';
+    if (BLOCKED_EXTENSIONS.has(ext)) {
+      showError(`"${file.name}" is a blocked file type for security.`);
+      continue;
+    }
+    validFiles.push(file);
+  }
+  if (!validFiles.length) return;
+
   const zone    = document.getElementById('uploadZone');
   const text    = zone?.querySelector('p');
   const uploadBtn = document.getElementById('uploadBtn');
   if (uploadBtn) uploadBtn.disabled = true;
 
   try {
-    for (const file of files) {
+    for (const file of validFiles) {
       try {
         if (text) text.textContent = `Preparing ${file.name}…`;
         const { path, url } = await storageManager.uploadFile(file, user.uid, (pct) => {
           if (text) text.textContent = `Uploading ${file.name} (${pct}%)…`;
         });
-        await fileManager.addFileMetadata(
-          { name: file.name, size: file.size, type: file.type, storagePath: path, storageUrl: url, ownerEmail: user.email },
-          currentFolderId()
-        );
+        try {
+          await fileManager.addFileMetadata(
+            { name: file.name, size: file.size, type: file.type, storagePath: path, storageUrl: url, ownerEmail: user.email },
+            currentFolderId()
+          );
+        } catch (metaErr) {
+          logError('Metadata write', metaErr);
+          try { await storageManager.deleteFile(path); } catch (_) {}
+          throw metaErr;
+        }
         showSuccess(`${file.name} uploaded.`);
       } catch (err) {
         logError('Upload', err);
@@ -428,18 +506,21 @@ async function handleFiles(fileList) {
 // ── Share ──────────────────────────────────────────────────
 let _shareFileId = null;
 
-window.openShareModal = (fileId) => {
+function handleOpenShareModal(fileId) {
   _shareFileId = fileId;
   const modal = document.getElementById('shareModal');
   if (modal) {
     modal.style.display = 'flex';
     setTimeout(() => document.getElementById('shareEmail')?.focus(), 50);
   }
-};
+}
 
 async function shareHandler() {
   const email = document.getElementById('shareEmail')?.value?.trim();
   if (!email) return showError('Please enter an email.');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showError('Please enter a valid email address.');
+  const btn = document.getElementById('shareFileBtn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sharing…'; }
   try {
     await fileManager.shareFile(_shareFileId, email);
     document.getElementById('shareEmail').value = '';
@@ -448,22 +529,28 @@ async function shareHandler() {
   } catch (err) {
     logError('Share', err);
     showError(`Share failed: ${friendlyFirebaseError(err)}`);
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = 'Share'; }
   }
 }
 
 // ── Star ───────────────────────────────────────────────────
-window.toggleStar = async (id, starred) => {
+async function handleToggleStar(id, starred, btn) {
+  if (btn) { btn.disabled = true; }
   try {
     await fileManager.toggleStar(id, starred);
     showSuccess(starred ? 'Starred.' : 'Unstarred.');
   } catch (err) {
     logError('Star', err);
     showError(friendlyFirebaseError(err));
+  } finally {
+    if (btn) { btn.disabled = false; }
   }
-};
+}
 
 // ── Download ───────────────────────────────────────────────
-window.downloadFile = async (storagePath, fileName) => {
+async function handleDownloadFile(storagePath, fileName, btn) {
+  if (btn) { btn.disabled = true; }
   try {
     const blob = await storageManager.downloadFile(storagePath);
     const url  = URL.createObjectURL(blob);
@@ -473,35 +560,44 @@ window.downloadFile = async (storagePath, fileName) => {
   } catch (err) {
     logError('Download', err);
     showError(`Download failed: ${friendlyFirebaseError(err)}`);
+  } finally {
+    if (btn) { btn.disabled = false; }
   }
-};
+}
 
 // ── Move to Trash (Firestore only — keeps Storage file) ───
-window.moveToTrash = async (id) => {
+async function handleMoveToTrash(id, btn) {
   if (!confirm('Move to trash?')) return;
+  if (btn) { btn.disabled = true; }
   try {
     await fileManager.deleteFile(id);
     showSuccess('Moved to trash.');
   } catch (err) {
     logError('Trash', err);
     showError(friendlyFirebaseError(err));
+  } finally {
+    if (btn) { btn.disabled = false; }
   }
-};
+}
 
 // ── Restore ────────────────────────────────────────────────
-window.restoreFile = async (id) => {
+async function handleRestoreFile(id, btn) {
+  if (btn) { btn.disabled = true; }
   try {
     await fileManager.restoreFile(id);
     showSuccess('Restored.');
   } catch (err) {
     logError('Restore', err);
     showError(friendlyFirebaseError(err));
+  } finally {
+    if (btn) { btn.disabled = false; }
   }
-};
+}
 
 // ── Permanently Delete ─────────────────────────────────────
-window.permanentDeleteFile = async (id, storagePath) => {
+async function handlePermanentDelete(id, storagePath, btn) {
   if (!confirm('Permanently delete? This cannot be undone.')) return;
+  if (btn) { btn.disabled = true; }
   try {
     if (storagePath) await storageManager.deleteFile(storagePath);
     await fileManager.permanentlyDeleteFile(id);
@@ -509,8 +605,10 @@ window.permanentDeleteFile = async (id, storagePath) => {
   } catch (err) {
     logError('Perm delete', err);
     showError(friendlyFirebaseError(err));
+  } finally {
+    if (btn) { btn.disabled = false; }
   }
-};
+}
 
 // ── Fatal error ────────────────────────────────────────────
 function showFatalError(html) {
@@ -532,7 +630,10 @@ function formatFileSize(bytes) {
 function formatDate(date) {
   if (!date) return 'Unknown';
   const d = date instanceof Date ? date : new Date(date);
-  const days = Math.floor(Math.abs(new Date() - d) / 86400000);
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diffMs = todayStart - d;
+  const days = Math.floor(diffMs / 86400000);
   if (days === 0) return 'Today';
   if (days === 1) return 'Yesterday';
   if (days < 7)  return `${days}d ago`;
@@ -547,4 +648,13 @@ function escapeHtml(s) {
     .replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 }
 
-function escapeAttr(s) { return String(s || '').replaceAll("'", "\\'"); }
+function escapeAttr(s) {
+  return String(s || '')
+    .replaceAll('\\', '\\\\')
+    .replaceAll("'", '\\\'')
+    .replaceAll('"', '&quot;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('\n', '\\n')
+    .replaceAll('\r', '\\r');
+}
