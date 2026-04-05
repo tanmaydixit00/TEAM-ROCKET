@@ -23,7 +23,7 @@ function env(key, fallback = '') {
 }
 
 export const supabaseConfig = {
-  url:    env('URL',    'https://YOUR_PROJECT_ID.supabase.co'),
-  key:    env('KEY',    'YOUR_SUPABASE_ANON_KEY'),
+  url:    env('URL',    'https://rmqaewrkwjviifozveow.supabase.co'),
+  key:    env('KEY',    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJtcWFld3Jrd2p2aWlmb3p2ZW93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3ODc1OTMsImV4cCI6MjA4NTM2MzU5M30.6f97ePKGnr8wk7OWFOGla5Fo4u68ruNdITy8udBqTJA'),
   bucket: env('BUCKET', 'files'),
 };
