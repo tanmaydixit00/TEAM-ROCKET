@@ -17,6 +17,21 @@ export class StorageManager {
       throw new Error('Firebase Storage SDK not loaded.');
     }
     this.storage = firebase.storage();
+
+    // Pre-flight check: verify the storage bucket is initialized
+    try {
+      await this.storage.ref('__ping__').getMetadata();
+    } catch (err) {
+      // 'object-not-found' is expected and means the bucket is reachable
+      if (err.code !== 'storage/object-not-found') {
+        if (err.code === 'storage/bucket-not-found') {
+          throw new Error('Firebase Storage is not set up. Open Firebase Console > Storage > Get started.');
+        }
+        if (err.code === 'storage/unauthorized') {
+          throw new Error('Storage access denied. Check Firebase Storage rules.');
+        }
+      }
+    }
   }
 
   /** Sanitise filename for safe storage paths */
@@ -41,12 +56,13 @@ export class StorageManager {
     return new Promise((resolve, reject) => {
       const task = ref.put(file);
 
+      // 30-second timeout — prevents silent hangs
       const timeoutId = setTimeout(() => {
         try { task.cancel(); } catch (_) {}
-        const err = new Error('Upload timed out. Please try again.');
+        const err = new Error('Upload timed out after 30s. Check your connection and try again.');
         err.code = 'storage/retry-limit-exceeded';
         reject(err);
-      }, 120000);
+      }, 30000);
 
       task.on(
         'state_changed',
