@@ -2,7 +2,15 @@ import { firebaseConfig } from './config.js';
 
 // Initialize Firebase (only once — guard against double-init)
 if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
+  try {
+    firebase.initializeApp(firebaseConfig);
+  } catch (e) {
+    const errorDiv = document.getElementById('authError');
+    if (errorDiv) {
+      errorDiv.textContent = 'Firebase init failed: ' + e.message;
+      errorDiv.style.display = 'block';
+    }
+  }
 }
 
 const auth = firebase.auth();
@@ -10,8 +18,13 @@ const auth = firebase.auth();
 // Redirect to dashboard if already signed in
 auth.onAuthStateChanged((user) => {
   if (user) {
-    // Use root path + replace() — avoids login.html ⇔ index.html loop
     window.location.replace('/');
+  }
+}, (err) => {
+  const errorDiv = document.getElementById('authError');
+  if (errorDiv) {
+    errorDiv.textContent = 'Auth error: ' + err.message;
+    errorDiv.style.display = 'block';
   }
 });
 

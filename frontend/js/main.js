@@ -64,23 +64,34 @@ setupNavListeners();
 
 // ── Auth gate ──────────────────────────────────────────────
 if (firebaseReady) {
-  auth.onAuthStateChanged((user) => {
-    if (!user) {
-      // Redirect loop guard: if we came from login, show error instead of looping
-      const referrer = document.referrer;
-      if (referrer.includes('login.html')) {
-        showFatalError(
-          'Authentication failed. Please check your Firebase configuration.<br>' +
-          '<code>apiKey: ' + (firebaseConfig.apiKey || '(empty)') + '</code><br>' +
-          '<code>projectId: ' + (firebaseConfig.projectId || '(empty)') + '</code>'
-        );
+  // Redirect loop guard: track attempts in sessionStorage
+  const AUTH_CHECK_KEY = '_mc_auth_check';
+  const authAttempts = parseInt(sessionStorage.getItem(AUTH_CHECK_KEY) || '0', 10);
+
+  if (authAttempts >= 2) {
+    sessionStorage.removeItem(AUTH_CHECK_KEY);
+    showFatalError(
+      'Authentication service unavailable. Please check:<br>' +
+      '<code>apiKey: ' + (firebaseConfig.apiKey || '(empty)') + '</code><br>' +
+      '<code>projectId: ' + (firebaseConfig.projectId || '(empty)') + '</code><br><br>' +
+      'Verify Firebase Console → Authentication → Sign-in method is enabled.'
+    );
+  } else {
+    sessionStorage.setItem(AUTH_CHECK_KEY, String(authAttempts + 1));
+
+    auth.onAuthStateChanged((user) => {
+      if (!user) {
+        window.location.replace('/login.html');
         return;
       }
-      window.location.replace('/login.html');
-      return;
-    }
-    initAuthedUI(user);
-  }, (err) => showFatalError('Auth error: ' + err.message));
+      // Auth succeeded — clear the counter
+      sessionStorage.removeItem(AUTH_CHECK_KEY);
+      initAuthedUI(user);
+    }, (err) => {
+      logError('Auth', err);
+      showFatalError('Auth error: ' + err.message);
+    });
+  }
 }
 
 // ── Authenticated bootstrap ────────────────────────────────
