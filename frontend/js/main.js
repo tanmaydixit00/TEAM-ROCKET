@@ -2,7 +2,6 @@ import { firebaseConfig } from './config.js';
 import { StorageManager } from './supabase-storage.js';
 import { FileManager }    from './FileManager.js';
 import { showError, showSuccess, logError, friendlyFirebaseError } from './errorHandler.js';
-import { sendShareEmail } from './emailService.js';
 
 // ── Constants ──────────────────────────────────────────────
 const ROUTES = Object.freeze({
@@ -595,37 +594,26 @@ async function shareHandler() {
   if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sharing…'; }
 
   try {
-    // Get file metadata for the email
     const fileDoc = await fileManager.getFileMetadata(_shareFileId);
     const user = auth.currentUser;
     const profile = resolveUserProfile(user);
 
-    // 1. Send email notification
-    let emailSent = false;
-    try {
-      emailSent = await sendShareEmail({
-        toEmail: email,
-        fromName: profile.name,
-        fromEmail: user.email,
-        fileName: fileDoc?.name || 'A file',
-        downloadLink: fileDoc?.storageUrl || '',
-      });
-    } catch (emailErr) {
-      logError('Share email', emailErr);
-      // Continue even if email fails — Firestore share still works
-    }
+    // 1. Open user's email client with pre-filled share message
+    const subject = encodeURIComponent(`${profile.name} shared "${fileDoc?.name || 'a file'}" with you`);
+    const body = encodeURIComponent(
+      `Hi,\n\n${profile.name} (${user.email}) has shared a file with you on MiniCloud.\n\n` +
+      `File: ${fileDoc?.name || 'Unknown'}\n` +
+      `Download: ${fileDoc?.storageUrl || 'Log in to MiniCloud to view it'}\n\n` +
+      `This file was shared via MiniCloud.`
+    );
+    window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
 
     // 2. Add recipient to Firestore sharedWith array
     await fileManager.shareFile(_shareFileId, email);
 
     document.getElementById('shareEmail').value = '';
     document.getElementById('shareModal').style.display = 'none';
-
-    if (emailSent) {
-      showSuccess(`File shared — notification sent to ${email}.`);
-    } else {
-      showSuccess(`File shared with ${email}.`);
-    }
+    showSuccess(`Share email prepared. Send it from your email client.`);
   } catch (err) {
     logError('Share', err);
     showError(`Share failed: ${friendlyFirebaseError(err)}`);
