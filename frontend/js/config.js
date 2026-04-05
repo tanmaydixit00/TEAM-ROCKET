@@ -57,6 +57,7 @@ export const firebaseConfig = {
   storageBucket:     env('STORAGE_BUCKET',      'minicloud-6df35.firebasestorage.app'),
   messagingSenderId: env('MESSAGING_SENDER_ID', '953691126064'),
   appId:             env('APP_ID',              '1:953691126064:web:754a80c8abf23aa10e30f5'),
+  measurementId:     env('MEASUREMENT_ID',      'G-4D5TY7GF9C'),
 };
 
 // ── Backend API base URL ───────────────────────────────────────────────────

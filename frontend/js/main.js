@@ -66,7 +66,16 @@ setupNavListeners();
 if (firebaseReady) {
   auth.onAuthStateChanged((user) => {
     if (!user) {
-      // Use absolute path + replace() to avoid back-button redirect loops
+      // Redirect loop guard: if we came from login, show error instead of looping
+      const referrer = document.referrer;
+      if (referrer.includes('login.html')) {
+        showFatalError(
+          'Authentication failed. Please check your Firebase configuration.<br>' +
+          '<code>apiKey: ' + (firebaseConfig.apiKey || '(empty)') + '</code><br>' +
+          '<code>projectId: ' + (firebaseConfig.projectId || '(empty)') + '</code>'
+        );
+        return;
+      }
       window.location.replace('/login.html');
       return;
     }
