@@ -7,10 +7,11 @@ if (!firebase.apps.length) {
 
 const auth = firebase.auth();
 
-// Redirect to dashboard if already logged in
+// Redirect to dashboard if already signed in
 auth.onAuthStateChanged((user) => {
   if (user) {
-    window.location.href = 'index.html';
+    // Use root path + replace() — avoids login.html ⇔ index.html loop
+    window.location.replace('/');
   }
 });
 

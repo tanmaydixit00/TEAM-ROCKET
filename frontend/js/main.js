@@ -5,18 +5,18 @@ import { showError, showSuccess, logError, friendlyFirebaseError } from './error
 
 // ── Firebase init ──────────────────────────────────────────
 let firebaseReady = false;
+let auth;
 try {
   if (!firebase.apps.length) {
     console.log('[Firebase] Initializing project:', firebaseConfig.projectId);
     firebase.initializeApp(firebaseConfig);
   }
+  auth = firebase.auth();
   firebaseReady = true;
   console.log('[Firebase] OK');
 } catch (e) {
   showFatalError('Firebase init failed. Check js/config.js.<br><code>' + e.message + '</code>');
 }
-
-const auth = firebase.auth();
 
 let storageManager;
 let fileManager;
@@ -37,7 +37,11 @@ setupNavListeners();
 // ── Auth gate ──────────────────────────────────────────────
 if (firebaseReady) {
   auth.onAuthStateChanged((user) => {
-    if (!user) { window.location.href = 'login.html'; return; }
+    if (!user) {
+      // Use absolute path + replace() to avoid back-button redirect loops
+      window.location.replace('/login.html');
+      return;
+    }
     initAuthedUI(user);
   }, (err) => showFatalError('Auth error: ' + err.message));
 }
