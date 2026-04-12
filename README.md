@@ -1,127 +1,30 @@
-# TEAM-ROCKET — MyDrive
+# MiniCloud
 
-A cloud file-storage application with a Node.js + Express + MongoDB backend and a vanilla HTML/CSS/JS frontend.
+A cloud file-storage application built with Firebase (Auth + Firestore) and Supabase Storage, with a vanilla HTML/CSS/JS frontend.
 
 ---
 
 ## Project Structure
 
 ```
-TEAM-ROCKET/
-├── backend/                  # Express.js API server
-│   ├── config/
-│   │   └── database.js       # MongoDB connection
-│   ├── controllers/
-│   │   └── authController.js # Authentication business logic
-│   ├── middleware/
-│   │   └── auth.js           # JWT verification middleware
-│   ├── models/
-│   │   └── User.js           # Mongoose User schema
-│   ├── routes/
-│   │   ├── auth.js           # /api/auth routes
-│   │   └── users.js          # /api/users routes
-│   ├── server.js             # Express application entry point
-│   ├── package.json
-│   └── .env.example          # Environment variable template
-│
-└── frontend/                 # Static HTML/CSS/JS frontend
-    ├── css/
-    │   └── styles.css
-    ├── js/
-    │   ├── api.js            # Express API helper functions
-    │   ├── auth.js           # Login / register logic (JWT)
-    │   ├── main.js           # Dashboard app logic
-    │   ├── storage.js        # Supabase file-storage manager
-    │   ├── FileManager.js    # Firestore file-metadata manager
-    │   └── config.js         # Firebase & Supabase configuration
-    ├── index.html            # Dashboard page
-    └── login.html            # Login / Sign-up page
-```
-
----
-
-## Backend Setup
-
-### Prerequisites
-- Node.js ≥ 16
-- A [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) cluster (free tier works)
-
-### 1. Install dependencies
-
-```bash
-cd backend
-npm install
-```
-
-### 2. Configure environment
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env` with your values:
-
-```env
-MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/TEAM-ROCKET
-JWT_SECRET=a_long_random_secret_string
-JWT_EXPIRE=30d
-PORT=5000
-FRONTEND_URL=http://localhost:3000
-```
-
-### 3. Start the server
-
-```bash
-# Production
-npm start
-
-# Development (auto-restart)
-npm run dev
-```
-
-The API will be available at `http://localhost:5000`.
-
----
-
-## API Reference
-
-### Authentication
-
-| Method | Endpoint              | Access  | Description              |
-|--------|-----------------------|---------|--------------------------|
-| POST   | `/api/auth/register`  | Public  | Register a new user      |
-| POST   | `/api/auth/login`     | Public  | Login and receive a JWT  |
-| POST   | `/api/auth/logout`    | Private | Logout (invalidate client token) |
-| GET    | `/api/auth/me`        | Private | Get current user profile |
-
-### Users
-
-| Method | Endpoint         | Access  | Description          |
-|--------|------------------|---------|----------------------|
-| GET    | `/api/users/:id` | Private | Get user profile     |
-| PUT    | `/api/users/:id` | Private | Update user profile  |
-| DELETE | `/api/users/:id` | Private | Delete user account  |
-
-### Example Requests
-
-**Register**
-```bash
-curl -X POST http://localhost:5000/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Jane","email":"jane@example.com","password":"password123"}'
-```
-
-**Login**
-```bash
-curl -X POST http://localhost:5000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"jane@example.com","password":"password123"}'
-```
-
-**Protected route**
-```bash
-curl http://localhost:5000/api/auth/me \
-  -H "Authorization: Bearer <your_jwt_token>"
+MiniCloud/
+├── frontend/                 # Static HTML/CSS/JS frontend
+│   ├── css/
+│   │   └── styles.css
+│   ├── js/
+│   │   ├── main.js           # Dashboard app logic
+│   │   ├── FileManager.js    # Firestore file/folder metadata manager
+│   │   ├── supabase-storage.js # Supabase file-storage manager
+│   │   ├── auth.js           # Login / register logic
+│   │   ├── config.js         # Firebase & Supabase configuration
+│   │   ├── config.example.js # Configuration template
+│   │   ├── errorHandler.js   # Error display helpers
+│   │   └── supabase-config.js
+│   ├── index.html            # Dashboard page
+│   └── login.html            # Login / Sign-up page
+├── firebase.json
+├── firestore.rules
+└── storage.rules
 ```
 
 ---
@@ -140,15 +43,7 @@ Edit `frontend/js/config.js` and replace the placeholder values with your Fireba
 
 > **Where to find these values**: Firebase Console → Project Settings → General → "Your apps" → Web app → Config snippet.
 
-### 2. (Optional) Configure backend
-
-```bash
-cp backend/config/config.example.js backend/config/config.js
-```
-
-Edit `backend/config/config.js` with the same Firebase credentials, then follow the [Backend Setup](#backend-setup) steps above.
-
-### 3. Serve the frontend
+### 2. Serve the frontend
 
 ```bash
 npx http-server frontend/
@@ -157,13 +52,43 @@ npx http-server frontend/
 
 ---
 
+## Features
+
+### Folder Navigation
+
+- **Create folders**: Click the **New Folder** button and enter a name.
+- **Open a folder**: Click on any folder card to navigate into it and see its contents.
+- **Breadcrumb navigation**: A breadcrumb trail appears at the top when you are inside a folder. Click any segment to jump back to that level.
+- **Back to root**: Click the first breadcrumb item (e.g. "My Files") to return to the root.
+- Folder navigation is scoped to the **My Files** view.
+
+### Upload Files into a Folder
+
+- **Root upload**: While viewing **My Files** at the root level, drag & drop files onto the upload zone or click **Upload**.
+- **Upload into a folder**: Navigate into a folder first (click it), then use the same **Upload** button or drag & drop. Files are automatically associated with the currently open folder.
+- Validation: files exceeding **100 MB** or with blocked extensions (`.exe`, `.bat`, etc.) are rejected before upload.
+- Progress feedback is shown in the upload zone while uploading.
+
+### Sharing
+
+- **Share a file or folder**: Hover over any file or folder card to reveal its action buttons, then click the **share** button (share icon).
+- A modal will appear asking for the recipient's email address.
+- Click **Next** to add the recipient to the item's `sharedWith` list in Firestore and proceed to the confirmation screen.
+- The confirmation screen shows:
+  - For **files**: the direct download link, with a copy-to-clipboard button.
+  - For **folders**: a confirmation message (no direct link, as folders are containers).
+- Use **Open in Gmail** or **Open in Outlook** to compose a share notification email.
+- Recipients can find shared items under the **Shared** sidebar section after signing in.
+
+---
+
 ## Security
 
-- Passwords are hashed with **bcryptjs** (salt rounds: 10)
-- Authentication uses **JWT** (HS256, configurable expiry)
-- CORS is restricted to `FRONTEND_URL`
-- Input is validated at the model level (Mongoose validators)
-- The `.env` file is excluded from version control via `.gitignore`
+- Authentication via **Firebase Auth** (Google Sign-in or email/password as configured).
+- Firestore security rules (`firestore.rules`) restrict reads/writes to authenticated owners.
+- Storage rules (`storage.rules`) restrict uploads to the owning user.
+- Files over 100 MB and potentially dangerous file extensions are blocked client-side.
+- The `.env` / `config.js` files are excluded from version control.
 
 ---
 

@@ -261,8 +261,11 @@ function setupAuthListeners() {
   document.getElementById('shareBackBtn')?.addEventListener('click', () => {
     const step1 = document.getElementById('shareStep1');
     const step2 = document.getElementById('shareStep2');
+    const linkBox = document.querySelector('.share-link-box');
     if (step1) step1.style.display = '';
     if (step2) step2.style.display = 'none';
+    // Reset link box visibility for next use
+    if (linkBox) linkBox.style.display = '';
   });
 
   // New Folder
@@ -453,6 +456,9 @@ function renderItems(items) {
         <button class="action-btn" data-action="toggle-star" data-id="${escapeAttr(item.id)}" data-starred="${!item.starred}" title="${item.starred ? 'Unstar' : 'Star'}">
           <i class="fas fa-star ${item.starred ? 'starred' : ''}"></i>
         </button>
+        <button class="action-btn" data-action="share" data-id="${escapeAttr(item.id)}" title="Share">
+          <i class="fas fa-share-nodes"></i>
+        </button>
         <button class="action-btn delete" data-action="move-to-trash" data-id="${escapeAttr(item.id)}" title="Move to Trash">
           <i class="fas fa-trash"></i>
         </button>`;
@@ -472,17 +478,12 @@ function renderItems(items) {
   // ── Event delegation for all file-card actions ──────────
   el.querySelectorAll('.file-card').forEach((card) => {
     const handleCardAction = () => {
-      const folderBtn = card.querySelector('[data-action="open-folder"]');
-      if (folderBtn && currentRoute === ROUTES.MY_FILES) {
-        navigateToFolder(folderBtn.dataset.id, folderBtn.dataset.name);
+      if (card.dataset.action === 'open-folder' && currentRoute === ROUTES.MY_FILES) {
+        navigateToFolder(card.dataset.id, card.dataset.name);
       }
     };
     card.addEventListener('click', (e) => {
-      const folderBtn = e.target.closest('[data-action="open-folder"]');
-      if (folderBtn) {
-        e.stopPropagation();
-        handleCardAction();
-      }
+      if (!e.target.closest('.file-actions')) handleCardAction();
     });
     card.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
@@ -652,12 +653,16 @@ function handleOpenShareModal(fileId) {
   _shareRecipient = null;
   const step1 = document.getElementById('shareStep1');
   const step2 = document.getElementById('shareStep2');
+  const linkBox = document.querySelector('.share-link-box');
   if (step1) step1.style.display = '';
   if (step2) step2.style.display = 'none';
+  if (linkBox) linkBox.style.display = '';
+  const shareEmail = document.getElementById('shareEmail');
+  if (shareEmail) shareEmail.value = '';
   const modal = document.getElementById('shareModal');
   if (modal) {
     modal.style.display = 'flex';
-    setTimeout(() => document.getElementById('shareEmail')?.focus(), 50);
+    setTimeout(() => shareEmail?.focus(), 50);
   }
 }
 
@@ -678,24 +683,27 @@ async function shareHandler() {
     // Add recipient to Firestore sharedWith array
     await fileManager.shareFile(_shareFileId, email);
 
-    // Build share message
-    const fileName = fileDoc?.name || 'A file';
+    // Build share message (handle folders which have no storageUrl)
+    const isFolder = fileDoc?.type === 'folder';
+    const itemLabel = isFolder ? 'folder' : 'file';
+    const fileName = fileDoc?.name || (isFolder ? 'A folder' : 'A file');
     const downloadLink = fileDoc?.storageUrl || '';
     const subject = `${profile.name} shared "${fileName}" with you`;
-    const body =
-      `Hi,\n\n${profile.name} (${user.email}) has shared a file with you on MiniCloud.\n\n` +
-      `File: ${fileName}\n` +
-      `Download: ${downloadLink}\n\n` +
-      `This file was shared via MiniCloud.`;
+    const body = isFolder
+      ? `Hi,\n\n${profile.name} (${user.email}) has shared a folder with you on MiniCloud.\n\nFolder: ${fileName}\n\nThis folder was shared via MiniCloud.`
+      : `Hi,\n\n${profile.name} (${user.email}) has shared a file with you on MiniCloud.\n\nFile: ${fileName}\nDownload: ${downloadLink}\n\nThis file was shared via MiniCloud.`;
 
     // Show step 2 with share link and send options
     const step1 = document.getElementById('shareStep1');
     const step2 = document.getElementById('shareStep2');
     const fileInfo = document.getElementById('shareFileInfo');
     const linkInput = document.getElementById('shareLinkInput');
+    const linkBox = document.querySelector('.share-link-box');
 
-    if (fileInfo) fileInfo.textContent = `"${fileName}" shared with ${email}`;
+    if (fileInfo) fileInfo.textContent = `"${fileName}" (${itemLabel}) shared with ${email}`;
     if (linkInput) { linkInput.value = downloadLink; }
+    // Hide the link box for folders since there is no direct download link
+    if (linkBox) linkBox.style.display = isFolder ? 'none' : '';
     if (step1) step1.style.display = 'none';
     if (step2) step2.style.display = '';
 
